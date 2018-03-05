@@ -3,7 +3,7 @@
 JAR_FILE=pike.jar
 MAIN=Server
 
-[[ -f $BIN ]] && rm -f $BIN
+[[ -f $JAR_FILE ]] && rm -f $JAR_FILE
 [[ -d bin ]] && rm -rf bin 
 [[ ! -d bin ]] && mkdir -p bin
 
@@ -14,6 +14,8 @@ find src -type f -name *.java > $SOURCES
 #
 javac -d bin @$SOURCES
 
-[[ $? -eq 0 ]] && jar cef $MAIN $JAR_FILE -C bin .
+[[ $? -eq 0 ]] && jar cef $MAIN $JAR_FILE \
+  -C bin . \
+  -C resources .
 
 rm -f $SOURCES

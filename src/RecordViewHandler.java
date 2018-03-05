@@ -1,7 +1,10 @@
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
@@ -19,25 +22,10 @@ import com.sun.net.httpserver.HttpHandler;
 
 class RecordViewHandler implements HttpHandler {
 
+  private static int BUF_SZ = 0x1000;
+
   private static final Logger LOGGER = Logger.getLogger(
     RecordViewHandler.class.getName());
-
-  private static final String ERROR_HTML_TEMPLATE = "<html><head><title>" +
-    "%1$d %2$s</title></head><body><h1>%2$s</h1><p>%3$s</p></body></html>";
-
-  private static final String HTML_DOC_TEMPLATE = 
-    "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n%1$s\n</head>\n<body>\n" +
-      "%2$s\n</body>\n</html>";
-
-  private static final String HTML_RESULTS_TEMPLATE = 
-    "<table>\n<thead>\n<tr>\n<th scope=\"col\">Attribute</th>\n<th>Value" +
-      "</th>\n</tr>\n</thead>\n<tbody>\n%1$s</tbody>\n</table>";
-
-  private static final String HTML_TABLE_ROW_1_TEMPLATE = 
-    "<tr style=\"rowColor\">\n<td>%1$s</td>\n<td>%2$s</td>\n</tr>\n";
-
-  private static final String HTML_TABLE_ROW_2_TEMPLATE = 
-    "<tr style=\"altColor\">\n<td>%1$s</td>\n<td>%2$s</td>\n</tr>\n";
 
   private static final String HTTP_DATE_LOG_FORMAT = "[dd/MMM/yyyy HH:mm:ss]";
 
@@ -105,29 +93,49 @@ class RecordViewHandler implements HttpHandler {
   }
 
   private String getErrorHtml(int status, String error, String text) {
-    return String.format(ERROR_HTML_TEMPLATE, status, error, text);
+    String errorHeaderTemplate = getTemplateAsUtf8String("error-head");
+    String errorHeader = String.format(errorHeaderTemplate, status, error);
+    
+    String errorBodyTemplate = getTemplateAsUtf8String("error-body");
+    String errorBody = String.format(errorBodyTemplate, error, text);
+
+    String htmlTemplate = getTemplateAsUtf8String("basedoc");
+    return String.format(htmlTemplate, errorHeader, errorBody);
   }
 
-  private byte[] handleGetRecord(HttpExchange exchange) throws NamingException {
+  private byte[] handleGetRecord(HttpExchange exchange) 
+    throws NamingException {
     URI requestUri = exchange.getRequestURI();
     String rdn = getRdnFromPath(requestUri.getPath());
     String filter = getFilterFromQuery(requestUri.getRawQuery());
     SearchControls searchControls = new SearchControls();
     searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
-    Collection<StringTuple> results = ldapSession.search(rdn, filter, searchControls);
-    StringBuilder resultRows = new StringBuilder();
+    Collection<StringTuple> results = ldapSession.search(rdn, filter, 
+      searchControls);
+    
+    String recordRowTemplate = getTemplateAsUtf8String("record-table-row");
+    StringBuilder recordRows = new StringBuilder();
     int row = 0;
+    String rowStyle = "rowColor";
+    LOGGER.fine("Generating table rows");
     for (StringTuple result : results) {
-      String template = row % 2 == 0 ? HTML_TABLE_ROW_1_TEMPLATE : 
-        HTML_TABLE_ROW_2_TEMPLATE;
-      resultRows.append(String.format(template, result.s1, result.s2))
-        .append("\n");
+      rowStyle = row % 2 == 0 ? "rowColor" : "altColor";
+      recordRows.append(String.format(recordRowTemplate, rowStyle, result.s1, 
+        result.s2)).append("\n");
       row++;
     }
-    String resultTable = String.format(HTML_RESULTS_TEMPLATE, 
-      resultRows.toString());
-    String title = String.format("<title>Results: %s</title>", filter);
-    String content = String.format(HTML_DOC_TEMPLATE, title, resultTable);
+
+    String tableTemplate = getTemplateAsUtf8String("record-table");
+    String recordTable = String.format(tableTemplate, recordRows.toString());
+    
+    String recordHeadTemplate = getTemplateAsUtf8String("record-head");
+    String recordHead = String.format(recordHeadTemplate, filter);
+
+    String recordBodyTemplate = getTemplateAsUtf8String("record-body");
+    String recordBody = String.format(recordBodyTemplate, filter, recordTable);
+
+    String basedocTemplate = getTemplateAsUtf8String("basedoc");
+    String content = String.format(basedocTemplate, recordHead, recordBody);
     return content.getBytes();
   }
 
@@ -153,5 +161,32 @@ class RecordViewHandler implements HttpHandler {
       }
     }
     return filter;
+  }
+
+  private String getTemplateAsUtf8String(String name) {
+    byte[] templateBytes = getTemplateAsBytes(name);
+    return new String(templateBytes, Charset.forName("UTF-8"));
+  }
+
+  private byte[] getTemplateAsBytes(String name) {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    try (InputStream templateIs = RecordViewHandler.class.getResourceAsStream("templates/" + name + ".html")) {
+      if (templateIs == null) {
+        throw new RuntimeException(String.format("No template found for %s!", name));
+      }
+      byte[] buf = new byte[BUF_SZ];
+      while (true) {
+        int read = templateIs.read(buf);
+        if (read == -1) {
+          break;
+        }
+        bos.write(buf, 0, read);
+      }
+      return bos.toByteArray();
+    } catch (IOException e) {
+      LOGGER.log(Level.SEVERE, 
+        String.format("Failure reading resource %s", name), e);
+      throw new RuntimeException(e);
+    }
   }
 }
