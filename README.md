@@ -42,7 +42,9 @@ Options:
 
 URLs can be entered in the browser as follows:
 
-    http://localhost:[port]/dir/record/base;[RDN]?filter=[url-encoded filter]
+    http://localhost:[port]/dir/record/rdn;[RDN]?filter=[url-encoded filter]
+
+The URL uses [matrix parameters](https://www.w3.org/DesignIssues/MatrixURIs.html) to specify the RDN. An example path would be something like `/dir/record/rdn;ou=Users;cn=developers`.
 
 If `filter` isn't specified, the default is `(objectClass=*)`.
 

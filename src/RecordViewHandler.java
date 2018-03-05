@@ -59,7 +59,7 @@ class RecordViewHandler implements HttpHandler {
       status = 405;
       content = getErrorHtml(status, "Method Not Allowed", 
         exchange.getRequestMethod()).getBytes();
-    } else if (exchange.getRequestURI().getPath().contains("/record/base")) {
+    } else if (exchange.getRequestURI().getPath().contains("/record/rdn")) {
       try {
         content = handleGetRecord(exchange);
       } catch (PartialResultException e) {
