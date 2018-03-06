@@ -1,6 +1,6 @@
 # pike
 
-An HTTP-based LDAP browser.
+An HTTP-based LDAP browser intended for a single-user or a small team working on a software development project that needs to interact with LDAP.
 
 ## Building
 
@@ -56,10 +56,16 @@ This server is being built entirely with the JDK, without external dependencies.
 
 Desired features:
 
-* Use styled HTML pages to present results
-* Present multiple pages to the user with linked content (so users aren't typing long URLs).
+* Specify search scope from URL
+* Specify attributes to return from URL
+* Styled HTML pages in the application
+* Present multiple pages to the user with linked content (so users aren't typing long URLs)
 * Search page with a text box for entering a filter
-* Ability to specify an RDN to the orginal base
+* Ability to specify an RDN to the original base in a text box on a page
 * Ability to connect to different LDAP servers from 1 running instance
 * Remember certain information entered on the command line so the user doesn't have to enter it all the time
 * Configuration page to store (locally) some connection information
+
+## Etymology
+
+The name for this project is for [Pike County western in Illinois](https://en.wikipedia.org/wiki/Pike_County,_Illinois). It's also short to type on the command line which makes it efficient to use.
