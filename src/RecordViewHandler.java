@@ -2,12 +2,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -107,9 +112,13 @@ class RecordViewHandler implements HttpHandler {
     throws NamingException {
     URI requestUri = exchange.getRequestURI();
     String rdn = getRdnFromPath(requestUri.getPath());
-    String filter = getFilterFromQuery(requestUri.getRawQuery());
+    Map<String, List<String>> parameters = 
+      queryToMap(requestUri.getRawQuery());
+    String filter = getFilter(parameters);
+
     SearchControls searchControls = new SearchControls();
-    searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+    searchControls.setSearchScope(getSearchScope(parameters));
+    searchControls.setReturningAttributes(getReturnAttributes(parameters));
     Collection<StringTuple> results = ldapSession.search(rdn, filter, 
       searchControls);
     
@@ -150,17 +159,57 @@ class RecordViewHandler implements HttpHandler {
     return joiner.toString();
   }
 
-  private String getFilterFromQuery(String query) {
-    String filter = "(objectClass=*)";
-    if (!Server.isNullOrEmpty(query)) {
-      String[] params = query.split("=");
-      try {
-        filter = URLDecoder.decode(params[1], "UTF-8");
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+  private Map<String, List<String>> queryToMap(String rawQuery) {
+    Map<String, List<String>> decodedParameters = new HashMap<>();
+    if (!Server.isNullOrEmpty(rawQuery)) {
+      String[] parameters = rawQuery.split("&");
+      for (String parameter : parameters) {
+        String[] param = parameter.split("=");
+        try {
+          if (decodedParameters.containsKey(param[0])) {
+            List<String> value = decodedParameters.get(param[0]);
+            value.add(URLDecoder.decode(param[1], "UTF-8"));
+            decodedParameters.replace(param[0], value);
+          } else {
+            List<String> value = new ArrayList<>();
+            value.add(URLDecoder.decode(param[1], "UTF-8"));
+            decodedParameters.put(param[0], value);
+          }
+        } catch (UnsupportedEncodingException e) {
+          throw new RuntimeException(e);
+        }
       }
     }
-    return filter;
+    return decodedParameters;
+  }
+
+  private String getFilter(Map<String, List<String>> parameters) {
+    return parameters.containsKey("filter") ? parameters.get("filter").get(0) : 
+      "(objectClass=*)";
+  }
+
+  private int getSearchScope(Map<String, List<String>> parameters) {
+    // Do a subtree search by default. If another (valid) scope is specified 
+    // then search with that.
+    int scope = SearchControls.SUBTREE_SCOPE;
+    if (parameters.containsKey("scope")) {
+      String value = parameters.get("scope").get(0);
+      if (value.equalsIgnoreCase("object")) {
+        scope = SearchControls.OBJECT_SCOPE;
+      } else if (value.equalsIgnoreCase("onelevel")) {
+        scope = SearchControls.ONELEVEL_SCOPE;
+      }
+    }
+    return scope;
+  }
+
+  private String[] getReturnAttributes(Map<String, List<String>> parameters) {
+    String[] returningAttributes = null;
+    if (parameters.containsKey("attr")) {
+      List<String> value = parameters.get("attr");
+      returningAttributes = value.toArray(new String[value.size()]);
+    }
+    return returningAttributes;
   }
 
   private String getTemplateAsUtf8String(String name) {
@@ -170,7 +219,8 @@ class RecordViewHandler implements HttpHandler {
 
   private byte[] getTemplateAsBytes(String name) {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    try (InputStream templateIs = RecordViewHandler.class.getResourceAsStream("templates/" + name + ".html")) {
+    try (InputStream templateIs = 
+      RecordViewHandler.class.getResourceAsStream("templates/" + name + ".html")) {
       if (templateIs == null) {
         throw new RuntimeException(String.format("No template found for %s!", name));
       }

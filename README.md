@@ -42,11 +42,15 @@ Options:
 
 URLs can be entered in the browser as follows:
 
-    http://localhost:[port]/dir/record/rdn;[RDN]?filter=[url-encoded filter]
+    http://localhost:[port]/dir/record/rdn;[RDN]?filter=[url-encoded filter]&attr=[attribute-name]&scope=[search scope]
 
 The URL uses [matrix parameters](https://www.w3.org/DesignIssues/MatrixURIs.html) to specify the RDN. An example path would be something like `/dir/record/rdn;ou=Users;cn=developers`.
 
 If `filter` isn't specified, the default is `(objectClass=*)`.
+
+If `attr` isn't specified, all attributes are returned. The `attr` parameter can be specified multiple times, for example: `attr=cn&attr=objectClass&attr=mail`.
+
+If `scope` isn't specified or if `scope` isn't a valid value, a subtree search is performed. Valid values of scope are `subtree`, `object`, and `onelevel`.
 
 ## Philosophy
 
