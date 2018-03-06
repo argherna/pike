@@ -178,18 +178,19 @@ class Server {
 
   void serve() {
     LOGGER.info("Starting HTTP server...");
-    httpServer.start();
     for (HttpContext context : contexts) {
       LOGGER.config(() -> {
-        return String.format("Server ready at http://localhost:%1$d/%2s", 
-          httpServer.getAddress().getPort(), context.getPath());});
+        return String.format("Server ready at http://localhost:%1$d%2$s", 
+          httpServer.getAddress().getPort(), context.getPath());
+      });
     }
+    httpServer.start();
   }
 
   void shutdown() {
     for (HttpContext context : contexts) {
       LOGGER.info(String.format("Removing %s:%s", 
-        context.getClass().getSimpleName(), context.getPath()));
+        context.getHandler().getClass().getSimpleName(), context.getPath()));
       httpServer.removeContext(context);
     }
     LOGGER.warning("Stopping HTTP server...");
