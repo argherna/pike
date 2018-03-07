@@ -60,8 +60,6 @@ This server is being built entirely with the JDK, without external dependencies.
 
 Desired features:
 
-* Specify search scope from URL
-* Specify attributes to return from URL
 * Styled HTML pages in the application
 * Present multiple pages to the user with linked content (so users aren't typing long URLs)
 * Search page with a text box for entering a filter
