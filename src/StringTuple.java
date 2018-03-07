@@ -1,8 +1,8 @@
 final class StringTuple implements Comparable<StringTuple> {
 
-  public final String s1;
+  final String s1;
 
-  public final String s2;
+  final String s2;
 
   StringTuple(String s1, String s2) {
     this.s1 = s1;

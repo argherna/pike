@@ -106,9 +106,12 @@ class Server {
     try {
       LdapSession ldapSession = new LdapSession(ldapUrl, 
       searchBase, bindDn, password, useStartTls);
-      RecordViewHandler h0 = new RecordViewHandler(ldapSession, "pike");
+      RecordViewHandler h0 = new RecordViewHandler(ldapSession);
+      StaticResourceHandler h1 = new StaticResourceHandler();
       final Server server = new Server(port);
       server.addHandler("/dir", h0);
+      server.addHandler("/css", h1);
+      server.addHandler("/js", h1);
 
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override

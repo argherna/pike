@@ -27,31 +27,24 @@ import com.sun.net.httpserver.HttpHandler;
 
 class RecordViewHandler implements HttpHandler {
 
-  private static int BUF_SZ = 0x1000;
-
   private static final Logger LOGGER = Logger.getLogger(
     RecordViewHandler.class.getName());
 
-  private static final String HTTP_DATE_LOG_FORMAT = "[dd/MMM/yyyy HH:mm:ss]";
-
   private final LdapSession ldapSession;
 
-  private final String serverImplName;
-
-  RecordViewHandler(LdapSession ldapSession, String serverImplName) {
+  RecordViewHandler(LdapSession ldapSession) {
     this.ldapSession = ldapSession;
-    this.serverImplName = serverImplName;
   }
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
     byte[] content = new byte[0];
-    int status = 200;
+    HttpStatus status = HttpStatus.OK;
     String contentType = ContentTypes.TYPES.get("html");
     if (!exchange.getRequestMethod().equals("GET")) {
-      status = 405;
-      content = getErrorHtml(status, "Method Not Allowed", 
-        exchange.getRequestMethod()).getBytes();
+      status = HttpStatus.METHOD_NOT_ALLOWED;
+      content = Pages.errorHtml(status, exchange.getRequestMethod())
+        .getBytes();
     } else if (exchange.getRequestURI().getPath().contains("/record/rdn")) {
       try {
         content = handleGetRecord(exchange);
@@ -60,23 +53,18 @@ class RecordViewHandler implements HttpHandler {
           return String.format("Ignoring %s", e.getClass().getName());
         });
       } catch (NamingException e) {
-        status = 500;
-        content = getErrorHtml(status, "Internal Server Error", 
-          "Internal failure").getBytes();
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
+        content = Pages.errorHtml(status, "Internal failure").getBytes();
         LOGGER.log(Level.SEVERE, "Error occurred during LDAP search.", e);
       }
     } else {
-      status = 400;
-      content = getErrorHtml(status, "Bad Request", "Can't service request.")
-        .getBytes();
+      status = HttpStatus.BAD_REQUEST;
+      content = Pages.errorHtml(status, "Can't service request.").getBytes();
     }
 
     try {
-      Headers h = exchange.getResponseHeaders();
-      h.add("Content-Type", contentType);
-      h.add("Server", String.format("%s/Java %s", serverImplName, 
-        System.getProperty("java.version")));
-      exchange.sendResponseHeaders(status, content.length);
+      IO.sendResponseHeaders(exchange, contentType, status.getStatusCode(),
+        content.length);
     } catch (IOException e) {
       LOGGER.warning(String.format("Problem sending response headers", e));
     }
@@ -85,27 +73,12 @@ class RecordViewHandler implements HttpHandler {
       OutputStream out = exchange.getResponseBody();
       out.write(content);
       out.flush();
+      out.close();
     }
     
     // Log the request
-    LOGGER.info(
-      String.format("%1$s - - %2$s \"%3$s %4$s?%5$s\" %6$d -", 
-        exchange.getRemoteAddress().getAddress().toString(),
-        new SimpleDateFormat(HTTP_DATE_LOG_FORMAT).format(new Date()), 
-        exchange.getRequestMethod(), exchange.getRequestURI().getPath(),
-        exchange.getRequestURI().getRawQuery(), status));
+    RequestLogger.log(status.getStatusCode(), exchange);
     exchange.close();
-  }
-
-  private String getErrorHtml(int status, String error, String text) {
-    String errorHeaderTemplate = getTemplateAsUtf8String("error-head");
-    String errorHeader = String.format(errorHeaderTemplate, status, error);
-    
-    String errorBodyTemplate = getTemplateAsUtf8String("error-body");
-    String errorBody = String.format(errorBodyTemplate, error, text);
-
-    String htmlTemplate = getTemplateAsUtf8String("basedoc");
-    return String.format(htmlTemplate, errorHeader, errorBody);
   }
 
   private byte[] handleGetRecord(HttpExchange exchange) 
@@ -126,7 +99,6 @@ class RecordViewHandler implements HttpHandler {
     StringBuilder recordRows = new StringBuilder();
     int row = 0;
     String rowStyle = "rowColor";
-    LOGGER.fine("Generating table rows");
     for (StringTuple result : results) {
       rowStyle = row % 2 == 0 ? "rowColor" : "altColor";
       recordRows.append(String.format(recordRowTemplate, rowStyle, result.s1, 
@@ -218,21 +190,14 @@ class RecordViewHandler implements HttpHandler {
   }
 
   private byte[] getTemplateAsBytes(String name) {
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    try (InputStream templateIs = 
-      RecordViewHandler.class.getResourceAsStream("templates/" + name + ".html")) {
-      if (templateIs == null) {
-        throw new RuntimeException(String.format("No template found for %s!", name));
+    String templatePath = "templates/" + name + ".html";
+    try {
+      byte[] templateBytes = IO.loadResourceFromClasspath(templatePath);
+      if (templateBytes.length == 0) {
+        throw new RuntimeException(
+          String.format("%s not found!", templatePath));
       }
-      byte[] buf = new byte[BUF_SZ];
-      while (true) {
-        int read = templateIs.read(buf);
-        if (read == -1) {
-          break;
-        }
-        bos.write(buf, 0, read);
-      }
-      return bos.toByteArray();
+      return templateBytes;
     } catch (IOException e) {
       LOGGER.log(Level.SEVERE, 
         String.format("Failure reading resource %s", name), e);
