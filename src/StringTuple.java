@@ -18,4 +18,11 @@ final class StringTuple implements Comparable<StringTuple> {
       return s1Compare;
     }
   }
+
+  @Override
+  public String toString() {
+    return new StringBuilder(StringTuple.class.getName())
+      .append("[s1=").append(s1).append(",s2=").append(s2)
+      .append("]").toString();
+  }
 }

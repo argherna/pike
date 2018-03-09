@@ -17,6 +17,7 @@ import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.naming.InvalidNameException;
 import javax.naming.NamingException;
 import javax.naming.PartialResultException;
 import javax.naming.directory.SearchControls;
@@ -41,17 +42,23 @@ class RecordViewHandler implements HttpHandler {
     byte[] content = new byte[0];
     HttpStatus status = HttpStatus.OK;
     String contentType = ContentTypes.TYPES.get("html");
+    String pathParam = getLastPathComponent(
+      exchange.getRequestURI().getPath());
     if (!exchange.getRequestMethod().equals("GET")) {
       status = HttpStatus.METHOD_NOT_ALLOWED;
       content = Pages.errorHtml(status, exchange.getRequestMethod())
         .getBytes();
-    } else if (exchange.getRequestURI().getPath().contains("/record/rdn")) {
+    } else if (pathParam.equals("rdn") || pathParam.contains("rdn;")) {
       try {
         content = handleGetRecord(exchange);
       } catch (PartialResultException e) {
         LOGGER.log(Level.FINE, e, () -> {
           return String.format("Ignoring %s", e.getClass().getName());
         });
+      } catch (InvalidNameException e) {
+        status = HttpStatus.NOT_FOUND;
+        content = Pages.errorHtml(status, 
+          "No records found for the given filter.").getBytes();
       } catch (NamingException e) {
         status = HttpStatus.INTERNAL_SERVER_ERROR;
         content = Pages.errorHtml(status, "Internal failure").getBytes();
@@ -59,9 +66,9 @@ class RecordViewHandler implements HttpHandler {
       }
     } else {
       status = HttpStatus.BAD_REQUEST;
-      content = Pages.errorHtml(status, "Can't service request.").getBytes();
+      content = Pages.errorHtml(status, "Cannot service request.").getBytes();
     }
-
+    
     try {
       IO.sendResponseHeaders(exchange, contentType, status.getStatusCode(),
         content.length);
@@ -81,6 +88,11 @@ class RecordViewHandler implements HttpHandler {
     exchange.close();
   }
 
+  private String getLastPathComponent(String uriPath) {
+    String[] pathComponents = uriPath.split("/");
+    return pathComponents[pathComponents.length - 1];
+  }
+
   private byte[] handleGetRecord(HttpExchange exchange) 
     throws NamingException {
     URI requestUri = exchange.getRequestURI();
@@ -88,36 +100,12 @@ class RecordViewHandler implements HttpHandler {
     Map<String, List<String>> parameters = 
       queryToMap(requestUri.getRawQuery());
     String filter = getFilter(parameters);
-
     SearchControls searchControls = new SearchControls();
     searchControls.setSearchScope(getSearchScope(parameters));
     searchControls.setReturningAttributes(getReturnAttributes(parameters));
     Collection<StringTuple> results = ldapSession.search(rdn, filter, 
       searchControls);
-    
-    String recordRowTemplate = getTemplateAsUtf8String("record-table-row");
-    StringBuilder recordRows = new StringBuilder();
-    int row = 0;
-    String rowStyle = "rowColor";
-    for (StringTuple result : results) {
-      rowStyle = row % 2 == 0 ? "rowColor" : "altColor";
-      recordRows.append(String.format(recordRowTemplate, rowStyle, result.s1, 
-        result.s2)).append("\n");
-      row++;
-    }
-
-    String tableTemplate = getTemplateAsUtf8String("record-table");
-    String recordTable = String.format(tableTemplate, recordRows.toString());
-    
-    String recordHeadTemplate = getTemplateAsUtf8String("record-head");
-    String recordHead = String.format(recordHeadTemplate, filter);
-
-    String recordBodyTemplate = getTemplateAsUtf8String("record-body");
-    String recordBody = String.format(recordBodyTemplate, filter, recordTable);
-
-    String basedocTemplate = getTemplateAsUtf8String("basedoc");
-    String content = String.format(basedocTemplate, recordHead, recordBody);
-    return content.getBytes();
+    return Pages.recordView(filter, results).getBytes();
   }
 
   private String getRdnFromPath(String path) {
@@ -182,26 +170,5 @@ class RecordViewHandler implements HttpHandler {
       returningAttributes = value.toArray(new String[value.size()]);
     }
     return returningAttributes;
-  }
-
-  private String getTemplateAsUtf8String(String name) {
-    byte[] templateBytes = getTemplateAsBytes(name);
-    return new String(templateBytes, Charset.forName("UTF-8"));
-  }
-
-  private byte[] getTemplateAsBytes(String name) {
-    String templatePath = "templates/" + name + ".html";
-    try {
-      byte[] templateBytes = IO.loadResourceFromClasspath(templatePath);
-      if (templateBytes.length == 0) {
-        throw new RuntimeException(
-          String.format("%s not found!", templatePath));
-      }
-      return templateBytes;
-    } catch (IOException e) {
-      LOGGER.log(Level.SEVERE, 
-        String.format("Failure reading resource %s", name), e);
-      throw new RuntimeException(e);
-    }
   }
 }

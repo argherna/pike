@@ -109,7 +109,7 @@ class Server {
       RecordViewHandler h0 = new RecordViewHandler(ldapSession);
       StaticResourceHandler h1 = new StaticResourceHandler();
       final Server server = new Server(port);
-      server.addHandler("/dir", h0);
+      server.addHandler("/record", h0);
       server.addHandler("/css", h1);
       server.addHandler("/js", h1);
 
