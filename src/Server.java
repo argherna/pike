@@ -2,9 +2,12 @@ import java.io.Console;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -15,10 +18,16 @@ class Server {
 
   private static final Logger LOGGER = Logger.getLogger(
       Server.class.getName());
+      
+  private final Filter logRequestFilter = new LogRequestFilter();
 
+  private final Filter readOnlyMethodFilter = new ReadOnlyMethodFilter();
+  
   private final HttpServer httpServer;
 
-  private Set<HttpContext> contexts = new HashSet<>();
+  private final LdapSession ldapSession;
+
+  private final Set<HttpContext> contexts = new HashSet<>();
 
   public static void main(String... args) {
 
@@ -69,8 +78,11 @@ class Server {
             try {
               port = Integer.valueOf(arg);
             } catch (NumberFormatException e) {
-              LOGGER.config(String.format("%s is not a valid port number, defaulting to %d%n", 
-                args[0], DEFAULT_HTTP_SERVER_PORT));
+              LOGGER.config(() -> {
+                return String.format(
+                  "%s is not a valid port number, defaulting to %d%n",
+                  args[0], DEFAULT_HTTP_SERVER_PORT);
+              });
               port = DEFAULT_HTTP_SERVER_PORT;
             }
           }
@@ -105,11 +117,10 @@ class Server {
 
     try {
       LdapSession ldapSession = new LdapSession(ldapUrl, 
-      searchBase, bindDn, password, useStartTls);
-      RecordViewHandler h0 = new RecordViewHandler(ldapSession);
+        searchBase, bindDn, password, useStartTls);
       StaticResourceHandler h1 = new StaticResourceHandler();
-      final Server server = new Server(port);
-      server.addHandler("/record", h0);
+      final Server server = new Server(port, ldapSession);
+      server.addHandler("/record", new RecordViewHandler());
       server.addHandler("/css", h1);
       server.addHandler("/js", h1);
 
@@ -167,8 +178,9 @@ class Server {
     return password;
   }
   
-  Server(int port) throws IOException {
+  Server(int port, LdapSession ldapSession) throws IOException {
     httpServer = HttpServer.create(new InetSocketAddress(port), 0);    
+    this.ldapSession = ldapSession;
   }
 
   void addHandler(String path, HttpHandler handler) {
@@ -176,7 +188,14 @@ class Server {
       return String.format("Registering %s with %s", path, 
         handler.getClass().getSimpleName());
     });
-    contexts.add(httpServer.createContext(path, handler));
+    HttpContext context = httpServer.createContext(path);
+    List<Filter> filters = context.getFilters();
+    filters.add(logRequestFilter);
+    filters.add(readOnlyMethodFilter);
+    Map<String, Object> attributes = context.getAttributes();
+    attributes.put("ldapSession", ldapSession);
+    context.setHandler(handler);
+    contexts.add(context);
   }
 
   void serve() {

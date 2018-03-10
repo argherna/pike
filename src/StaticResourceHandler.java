@@ -15,23 +15,19 @@ class StaticResourceHandler implements HttpHandler {
     HttpStatus status = HttpStatus.OK;
     byte[] content = new byte[0];
     String contentType = null;
-    if (exchange.getRequestMethod().equals("GET")) {
-      String path = exchange.getRequestURI().getPath();
-      String extension = getFileExtension(path);
-      contentType = ContentTypes.TYPES.get(extension);
-      content = path.startsWith("/") ? IO.loadResourceFromClasspath(
-        path.substring(1)) : IO.loadResourceFromClasspath(path);
-      if (content.length == 0) {
-        status = HttpStatus.NOT_FOUND;
-        content = Pages.errorHtml(status, String.format(
-          "%s not found on this server", path)).getBytes();
-        contentType = ContentTypes.TYPES.get("html");
-      }
-    } else {
-      status = HttpStatus.METHOD_NOT_ALLOWED;
+    String path = exchange.getRequestURI().getPath();
+    String extension = getFileExtension(path);
+    contentType = ContentTypes.TYPES.get(extension);
+    content = path.startsWith("/") ? IO.loadResourceFromClasspath(
+      path.substring(1)) : IO.loadResourceFromClasspath(path);
+    if (content.length == 0) {
+      status = HttpStatus.NOT_FOUND;
+      LdapSession ldapSession = (LdapSession) exchange.getHttpContext()
+        .getAttributes().get("ldapSession");
+      content = Pages.errorHtml(status, String.format(
+        "%s not found on this server", path), ldapSession.getHostname(),
+        ldapSession.getAuthentication()).getBytes();
       contentType = ContentTypes.TYPES.get("html");
-      content = Pages.errorHtml(status, exchange.getRequestMethod())
-        .getBytes();
     }
 
     try {
@@ -47,8 +43,7 @@ class StaticResourceHandler implements HttpHandler {
       out.flush();
       out.close();
     }
-
-    RequestLogger.log(status.getStatusCode(), exchange);
+    exchange.close();
   }
 
   private String getFileExtension(String filename) {

@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -113,6 +114,29 @@ class LdapSession {
     return searchResults;
   }
 
+  String getHostname() {
+    try {
+      Hashtable<?, ?> env = ldapContext.getEnvironment();
+      String ldapUrl = (String) env.get(Context.PROVIDER_URL);
+      return URI.create(ldapUrl).getHost();
+    } catch (NamingException e) {
+      LOGGER.log(Level.INFO, "Failed to get server host name, returning null.",
+        e);
+      return null;
+    }
+  }
+  
+  String getAuthentication() {
+    try {
+      Hashtable<?, ?> env = ldapContext.getEnvironment();
+      return (String) env.get(Context.SECURITY_PRINCIPAL);
+    } catch (NamingException e) {
+      LOGGER.log(Level.INFO, "Failed to get authentication, returning null.",
+        e);
+      return null;
+    }
+  }
+  
   private String getSearchBase(String rdn) {
     StringJoiner searchBase = new StringJoiner(",");
     return searchBase.add(rdn).add(baseDn).toString();

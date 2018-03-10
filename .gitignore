@@ -24,6 +24,12 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
+### Code ###
+# Visual Studio Code - https://code.visualstudio.com/
+.settings/
+.vscode/
+tsconfig.json
+jsconfig.json
 
 # End of https://www.gitignore.io/api/java
 
@@ -33,4 +39,3 @@ bin/
 # generated file listings #
 sourcefiles.*
 classfiles.*
-

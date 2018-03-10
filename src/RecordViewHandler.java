@@ -31,12 +31,6 @@ class RecordViewHandler implements HttpHandler {
   private static final Logger LOGGER = Logger.getLogger(
     RecordViewHandler.class.getName());
 
-  private final LdapSession ldapSession;
-
-  RecordViewHandler(LdapSession ldapSession) {
-    this.ldapSession = ldapSession;
-  }
-
   @Override
   public void handle(HttpExchange exchange) throws IOException {
     byte[] content = new byte[0];
@@ -44,11 +38,9 @@ class RecordViewHandler implements HttpHandler {
     String contentType = ContentTypes.TYPES.get("html");
     String pathParam = getLastPathComponent(
       exchange.getRequestURI().getPath());
-    if (!exchange.getRequestMethod().equals("GET")) {
-      status = HttpStatus.METHOD_NOT_ALLOWED;
-      content = Pages.errorHtml(status, exchange.getRequestMethod())
-        .getBytes();
-    } else if (pathParam.equals("rdn") || pathParam.contains("rdn;")) {
+    LdapSession ldapSession = (LdapSession) exchange.getHttpContext()
+      .getAttributes().get("ldapSession");
+    if (pathParam.equals("rdn") || pathParam.contains("rdn;")) {
       try {
         content = handleGetRecord(exchange);
       } catch (PartialResultException e) {
@@ -58,15 +50,20 @@ class RecordViewHandler implements HttpHandler {
       } catch (InvalidNameException e) {
         status = HttpStatus.NOT_FOUND;
         content = Pages.errorHtml(status, 
-          "No records found for the given filter.").getBytes();
+          "No records found for the given filter.",
+          ldapSession.getHostname(), ldapSession.getAuthentication())
+          .getBytes();
       } catch (NamingException e) {
         status = HttpStatus.INTERNAL_SERVER_ERROR;
-        content = Pages.errorHtml(status, "Internal failure").getBytes();
+        content = Pages.errorHtml(status, "Internal failure", 
+          ldapSession.getHostname(), ldapSession.getAuthentication())
+          .getBytes();
         LOGGER.log(Level.SEVERE, "Error occurred during LDAP search.", e);
       }
     } else {
       status = HttpStatus.BAD_REQUEST;
-      content = Pages.errorHtml(status, "Cannot service request.").getBytes();
+      content = Pages.errorHtml(status, "Cannot service request.", 
+      ldapSession.getHostname(), ldapSession.getAuthentication()).getBytes();
     }
     
     try {
@@ -82,9 +79,7 @@ class RecordViewHandler implements HttpHandler {
       out.flush();
       out.close();
     }
-    
-    // Log the request
-    RequestLogger.log(status.getStatusCode(), exchange);
+
     exchange.close();
   }
 
@@ -98,14 +93,17 @@ class RecordViewHandler implements HttpHandler {
     URI requestUri = exchange.getRequestURI();
     String rdn = getRdnFromPath(requestUri.getPath());
     Map<String, List<String>> parameters = 
-      queryToMap(requestUri.getRawQuery());
+      IO.queryToMap(requestUri.getRawQuery());
     String filter = getFilter(parameters);
     SearchControls searchControls = new SearchControls();
     searchControls.setSearchScope(getSearchScope(parameters));
     searchControls.setReturningAttributes(getReturnAttributes(parameters));
+    LdapSession ldapSession = (LdapSession) exchange.getHttpContext()
+      .getAttributes().get("ldapSession");
     Collection<StringTuple> results = ldapSession.search(rdn, filter, 
       searchControls);
-    return Pages.recordView(filter, results).getBytes();
+    return Pages.recordView(filter, results, ldapSession.getHostname(),
+      ldapSession.getAuthentication()).getBytes();
   }
 
   private String getRdnFromPath(String path) {
@@ -117,30 +115,6 @@ class RecordViewHandler implements HttpHandler {
       }
     }
     return joiner.toString();
-  }
-
-  private Map<String, List<String>> queryToMap(String rawQuery) {
-    Map<String, List<String>> decodedParameters = new HashMap<>();
-    if (!Server.isNullOrEmpty(rawQuery)) {
-      String[] parameters = rawQuery.split("&");
-      for (String parameter : parameters) {
-        String[] param = parameter.split("=");
-        try {
-          if (decodedParameters.containsKey(param[0])) {
-            List<String> value = decodedParameters.get(param[0]);
-            value.add(URLDecoder.decode(param[1], "UTF-8"));
-            decodedParameters.replace(param[0], value);
-          } else {
-            List<String> value = new ArrayList<>();
-            value.add(URLDecoder.decode(param[1], "UTF-8"));
-            decodedParameters.put(param[0], value);
-          }
-        } catch (UnsupportedEncodingException e) {
-          throw new RuntimeException(e);
-        }
-      }
-    }
-    return decodedParameters;
   }
 
   private String getFilter(Map<String, List<String>> parameters) {
