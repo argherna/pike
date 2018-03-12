@@ -1,6 +1,7 @@
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
@@ -9,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import javax.naming.directory.SearchControls;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -19,15 +22,24 @@ final class IO {
 
   private static final Logger LOGGER = Logger.getLogger(IO.class.getName());
   
-  static void sendResponseHeaders(HttpExchange exchange, String contentType, 
-    int status, int contentLength) throws IOException {
+  static void sendResponse(HttpExchange exchange, HttpStatus status, 
+    byte[] content, String contentType) throws IOException {
     Headers h = exchange.getResponseHeaders();
     h.add("Content-Type", contentType);
     h.add("Server", String.format("pike/Java %s", 
       System.getProperty("java.version")));
     int length = exchange.getRequestMethod().equals("HEAD") ? -1 : 
-      contentLength;
-    exchange.sendResponseHeaders(status, length);
+      content.length;
+    exchange.sendResponseHeaders(status.getStatusCode(), length);
+
+    if (content.length > 0) {
+      OutputStream out = exchange.getResponseBody();
+      out.write(content);
+      out.flush();
+      out.close();
+    }
+
+    exchange.close();    
   }
 
   static String loadUtf8ResourceFromClasspath(String path) throws IOException {
@@ -68,7 +80,7 @@ final class IO {
 
   static Map<String, List<String>> queryToMap(String rawQuery) {
     Map<String, List<String>> decodedParameters = new HashMap<>();
-    if (!Server.isNullOrEmpty(rawQuery)) {
+    if (!Strings.isNullOrEmpty(rawQuery)) {
       String[] parameters = rawQuery.split("&");
       for (String parameter : parameters) {
         String[] param = parameter.split("=");
@@ -89,4 +101,41 @@ final class IO {
     }
     return decodedParameters;
   }
+
+  static String getFilter(Map<String, List<String>> parameters) {
+    return parameters.containsKey("filter") ? parameters.get("filter").get(0) : 
+      "(objectClass=*)";
+  }
+
+  static int getSearchScope(Map<String, List<String>> parameters) {
+    // Do a subtree search by default. If another (valid) scope is specified 
+    // then search with that.
+    int scope = SearchControls.SUBTREE_SCOPE;
+    if (parameters.containsKey("scope")) {
+      String value = parameters.get("scope").get(0);
+      if (value.equalsIgnoreCase("object")) {
+        scope = SearchControls.OBJECT_SCOPE;
+      } else if (value.equalsIgnoreCase("onelevel")) {
+        scope = SearchControls.ONELEVEL_SCOPE;
+      }
+    }
+    return scope;
+  }
+
+  static String[] getReturnAttributes(Map<String, List<String>> parameters) {
+    String[] returningAttributes = null;
+    if (parameters.containsKey("attr")) {
+      List<String> value = parameters.get("attr");
+      returningAttributes = value.toArray(new String[value.size()]);
+    }
+    return returningAttributes;
+  }
+
+  static SearchControls getSearchControls(Map<String, List<String>> parameters) {
+    SearchControls searchControls = new SearchControls();
+    searchControls.setSearchScope(getSearchScope(parameters));
+    searchControls.setReturningAttributes(getReturnAttributes(parameters));
+    return searchControls;
+  }
+
 }

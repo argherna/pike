@@ -30,6 +30,7 @@ hs_err_pid*
 .vscode/
 tsconfig.json
 jsconfig.json
+*.code-workspace
 
 # End of https://www.gitignore.io/api/java
 

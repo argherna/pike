@@ -1,14 +1,9 @@
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.logging.Logger;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 class StaticResourceHandler implements HttpHandler {
-
-  private static final Logger LOGGER = Logger.getLogger(
-    StaticResourceHandler.class.getName());
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
@@ -30,20 +25,7 @@ class StaticResourceHandler implements HttpHandler {
       contentType = ContentTypes.TYPES.get("html");
     }
 
-    try {
-      IO.sendResponseHeaders(exchange, contentType, status.getStatusCode(),
-        content.length);
-    } catch (IOException e) {
-      LOGGER.warning(String.format("Problem sending response headers", e));
-    }
-
-    if (content.length > 0) {
-      OutputStream out = exchange.getResponseBody();
-      out.write(content);
-      out.flush();
-      out.close();
-    }
-    exchange.close();
+    IO.sendResponse(exchange, status, content, contentType);
   }
 
   private String getFileExtension(String filename) {

@@ -36,6 +36,28 @@ final class Pages {
     }
   }
 
+  static String searchForm(String hostname, String authentication) {
+    try {
+      String searchForm = IO.loadUtf8ResourceFromClasspath(
+        "templates/search-form.html");
+  
+      String footer = "";
+      if (hostname != null && authentication != null) {
+        String basedocFooterTemplate = IO.loadUtf8ResourceFromClasspath(
+          "templates/basedoc-footer.html");
+        footer = String.format(basedocFooterTemplate, hostname, 
+          authentication);
+      }
+
+      String basedocTemplate = IO.loadUtf8ResourceFromClasspath(
+        "templates/basedoc.html");
+      return String.format(basedocTemplate, "<title>Welcome to Pike!</title>", 
+        searchForm, footer);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   static String recordView(String filter, Collection<StringTuple> data,
     String hostname, String authentication) {
     try {

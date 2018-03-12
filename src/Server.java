@@ -22,6 +22,9 @@ class Server {
   private final Filter logRequestFilter = new LogRequestFilter();
 
   private final Filter readOnlyMethodFilter = new ReadOnlyMethodFilter();
+
+  private final Filter internalServerErrorFilter = 
+    new InternalServerErrorFilter();
   
   private final HttpServer httpServer;
 
@@ -91,26 +94,26 @@ class Server {
       argIdx++;
     }
 
-    if (isNullOrEmpty(bindDn)) {
+    if (Strings.isNullOrEmpty(bindDn)) {
       System.err.println("-D not set!");
       showUsageAndExit(1);
     }
 
-    if (isNullOrEmpty(ldapUrl)) {
+    if (Strings.isNullOrEmpty(ldapUrl)) {
       System.err.println("-H not set!");
       showUsageAndExit(1);
     }
 
-    if (isNullOrEmpty(searchBase)) {
+    if (Strings.isNullOrEmpty(searchBase)) {
       System.err.println("-b not set!");
       showUsageAndExit(1);
     }
 
-    if (promptForPassword && isNullOrEmpty(password)) {
+    if (promptForPassword && Strings.isNullOrEmpty(password)) {
       password = new String(getPassword("bind"));
     }
 
-    if (isNullOrEmpty(password)) {
+    if (Strings.isNullOrEmpty(password)) {
       System.err.println("Password not set!");
       showUsageAndExit(1);
     }
@@ -118,8 +121,11 @@ class Server {
     try {
       LdapSession ldapSession = new LdapSession(ldapUrl, 
         searchBase, bindDn, password, useStartTls);
+      HttpHandler searchHandler = new SearchHandler();
       StaticResourceHandler h1 = new StaticResourceHandler();
       final Server server = new Server(port, ldapSession);
+      server.addHandler("/", searchHandler);
+      server.addHandler("/search", searchHandler);
       server.addHandler("/record", new RecordViewHandler());
       server.addHandler("/css", h1);
       server.addHandler("/js", h1);
@@ -162,10 +168,6 @@ class Server {
     System.err.println("  -Z               Use StartTLS");
   }
 
-  static boolean isNullOrEmpty(String value) {
-    return (value == null || (value != null && value.isEmpty()));
-  }
-
   private static char[] getPassword(String passwordType) {
     // Set a default password just in case there's no Console available.
     char[] password = "abcd1234".toCharArray();
@@ -192,6 +194,7 @@ class Server {
     List<Filter> filters = context.getFilters();
     filters.add(logRequestFilter);
     filters.add(readOnlyMethodFilter);
+    filters.add(internalServerErrorFilter);
     Map<String, Object> attributes = context.getAttributes();
     attributes.put("ldapSession", ldapSession);
     context.setHandler(handler);

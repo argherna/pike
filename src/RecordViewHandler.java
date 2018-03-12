@@ -54,11 +54,7 @@ class RecordViewHandler implements HttpHandler {
           ldapSession.getHostname(), ldapSession.getAuthentication())
           .getBytes();
       } catch (NamingException e) {
-        status = HttpStatus.INTERNAL_SERVER_ERROR;
-        content = Pages.errorHtml(status, "Internal failure", 
-          ldapSession.getHostname(), ldapSession.getAuthentication())
-          .getBytes();
-        LOGGER.log(Level.SEVERE, "Error occurred during LDAP search.", e);
+        throw new RuntimeException(e);
       }
     } else {
       status = HttpStatus.BAD_REQUEST;
@@ -66,21 +62,7 @@ class RecordViewHandler implements HttpHandler {
       ldapSession.getHostname(), ldapSession.getAuthentication()).getBytes();
     }
     
-    try {
-      IO.sendResponseHeaders(exchange, contentType, status.getStatusCode(),
-        content.length);
-    } catch (IOException e) {
-      LOGGER.warning(String.format("Problem sending response headers", e));
-    }
-
-    if (content.length > 0) {
-      OutputStream out = exchange.getResponseBody();
-      out.write(content);
-      out.flush();
-      out.close();
-    }
-
-    exchange.close();
+    IO.sendResponse(exchange, status, content, contentType);
   }
 
   private String getLastPathComponent(String uriPath) {
@@ -94,10 +76,8 @@ class RecordViewHandler implements HttpHandler {
     String rdn = getRdnFromPath(requestUri.getPath());
     Map<String, List<String>> parameters = 
       IO.queryToMap(requestUri.getRawQuery());
-    String filter = getFilter(parameters);
-    SearchControls searchControls = new SearchControls();
-    searchControls.setSearchScope(getSearchScope(parameters));
-    searchControls.setReturningAttributes(getReturnAttributes(parameters));
+    String filter = IO.getFilter(parameters);
+    SearchControls searchControls = IO.getSearchControls(parameters);
     LdapSession ldapSession = (LdapSession) exchange.getHttpContext()
       .getAttributes().get("ldapSession");
     Collection<StringTuple> results = ldapSession.search(rdn, filter, 
@@ -115,34 +95,5 @@ class RecordViewHandler implements HttpHandler {
       }
     }
     return joiner.toString();
-  }
-
-  private String getFilter(Map<String, List<String>> parameters) {
-    return parameters.containsKey("filter") ? parameters.get("filter").get(0) : 
-      "(objectClass=*)";
-  }
-
-  private int getSearchScope(Map<String, List<String>> parameters) {
-    // Do a subtree search by default. If another (valid) scope is specified 
-    // then search with that.
-    int scope = SearchControls.SUBTREE_SCOPE;
-    if (parameters.containsKey("scope")) {
-      String value = parameters.get("scope").get(0);
-      if (value.equalsIgnoreCase("object")) {
-        scope = SearchControls.OBJECT_SCOPE;
-      } else if (value.equalsIgnoreCase("onelevel")) {
-        scope = SearchControls.ONELEVEL_SCOPE;
-      }
-    }
-    return scope;
-  }
-
-  private String[] getReturnAttributes(Map<String, List<String>> parameters) {
-    String[] returningAttributes = null;
-    if (parameters.containsKey("attr")) {
-      List<String> value = parameters.get("attr");
-      returningAttributes = value.toArray(new String[value.size()]);
-    }
-    return returningAttributes;
   }
 }

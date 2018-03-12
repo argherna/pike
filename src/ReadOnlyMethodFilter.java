@@ -31,14 +31,7 @@ class ReadOnlyMethodFilter extends Filter {
       IO.sendResponseHeaders(exchange, 
         ContentTypes.TYPES.get("html"), status.getStatusCode(),
         content.length);
-
-      if (content.length > 0) {
-        OutputStream out = exchange.getResponseBody();
-        out.write(content);
-        out.flush();
-        out.close();
-      }
-      exchange.close();
+      IO.sendResponseBody(exchange, content);
     }
   }
 }
