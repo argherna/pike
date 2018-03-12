@@ -85,12 +85,11 @@ final class IO {
       for (String parameter : parameters) {
         String[] param = parameter.split("=");
         try {
-          if (decodedParameters.containsKey(param[0])) {
-            List<String> value = decodedParameters.get(param[0]);
-            value.add(URLDecoder.decode(param[1], "UTF-8"));
-            decodedParameters.replace(param[0], value);
-          } else {
-            List<String> value = new ArrayList<>();
+          List<String> value = decodedParameters.get(param[0]);
+          if (value == null) {
+            value = new ArrayList<>();
+          }
+          if (param.length > 1 && !Strings.isNullOrEmpty(param[1])) {
             value.add(URLDecoder.decode(param[1], "UTF-8"));
             decodedParameters.put(param[0], value);
           }

@@ -57,9 +57,8 @@ class RecordViewHandler implements HttpHandler {
         throw new RuntimeException(e);
       }
     } else {
-      status = HttpStatus.BAD_REQUEST;
-      content = Pages.errorHtml(status, "Cannot service request.", 
-      ldapSession.getHostname(), ldapSession.getAuthentication()).getBytes();
+      content = Pages.errorHtml(HttpStatus.BAD_REQUEST, "Cannot service request.", 
+        ldapSession.getHostname(), ldapSession.getAuthentication()).getBytes();
     }
     
     IO.sendResponse(exchange, status, content, contentType);

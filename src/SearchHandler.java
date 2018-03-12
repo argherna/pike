@@ -26,7 +26,8 @@ class SearchHandler implements HttpHandler {
         ldapSession.getAuthentication()).getBytes();
     } else {
       Map<String, List<String>> parameters = IO.queryToMap(rawQuery);
-      String rdn = parameters.get("rdn").get(0);
+      String rdn = parameters.containsKey("rdn") ? 
+        parameters.get("rdn").get(0) : "";
       String filter = IO.getFilter(parameters);
       SearchControls searchControls = IO.getSearchControls(parameters);
       Collection<StringTuple> results = new ArrayList<>();

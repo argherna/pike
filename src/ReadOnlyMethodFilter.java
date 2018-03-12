@@ -28,10 +28,8 @@ class ReadOnlyMethodFilter extends Filter {
       HttpStatus status = HttpStatus.METHOD_NOT_ALLOWED;
       byte[] content = Pages.errorHtml(status, method)
         .getBytes();
-      IO.sendResponseHeaders(exchange, 
-        ContentTypes.TYPES.get("html"), status.getStatusCode(),
-        content.length);
-      IO.sendResponseBody(exchange, content);
+      IO.sendResponse(exchange, status, content, 
+        ContentTypes.TYPES.get("html"));
     }
   }
 }

@@ -138,8 +138,12 @@ class LdapSession {
   }
   
   private String getSearchBase(String rdn) {
-    StringJoiner searchBase = new StringJoiner(",");
-    return searchBase.add(rdn).add(baseDn).toString();
+    if (Strings.isNullOrEmpty(rdn)) {
+      return baseDn;
+    } else {
+      StringJoiner searchBase = new StringJoiner(",");
+      return searchBase.add(rdn).add(baseDn).toString();
+    }
   }
 
   private List<StringTuple> loadResults(NamingEnumeration<SearchResult> result) 
