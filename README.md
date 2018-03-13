@@ -60,13 +60,9 @@ This server is being built entirely with the JDK, without external dependencies.
 
 Desired features:
 
-* Styled HTML pages in the application
-* Present multiple pages to the user with linked content (so users aren't typing long URLs)
-* Search page with a text box for entering a filter
-* Ability to specify an RDN to the original base in a text box on a page
 * Ability to connect to different LDAP servers from 1 running instance
 * Remember certain information entered on the command line so the user doesn't have to enter it all the time
-* Configuration page to store (locally) some connection information
+* Configuration page to manage (locally) some connection information
 
 ## Etymology
 
