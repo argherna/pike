@@ -14,7 +14,7 @@ Run the jar file:
 
     java -jar pike.jar [args]
 
-Logging is output to the console. Press `^C` to stop the server.
+Logging is based on JDK logging and output to the console by default. Press `^C` to stop the server.
 
 Arguments & options are needed to run the server. The arguments and options are similar to `ldapsearch`:
 
