@@ -6,9 +6,11 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 import javax.naming.directory.SearchControls;
@@ -79,6 +81,11 @@ final class IO {
   }
 
   static Map<String, List<String>> queryToMap(String rawQuery) {
+    return queryToMap(rawQuery, new HashMap<>());
+  }
+
+  static Map<String, List<String>> queryToMap(String rawQuery, 
+    Map<String, Function<String, List<String>>> parameterProcessors) {
     Map<String, List<String>> decodedParameters = new HashMap<>();
     if (!Strings.isNullOrEmpty(rawQuery)) {
       String[] parameters = rawQuery.split("&");
@@ -90,7 +97,11 @@ final class IO {
             value = new ArrayList<>();
           }
           if (param.length > 1 && !Strings.isNullOrEmpty(param[1])) {
-            value.add(URLDecoder.decode(param[1], "UTF-8"));
+            if (parameterProcessors.containsKey(param[0])) {
+              value.addAll(parameterProcessors.get(param[0]).apply(param[1]));
+            } else {
+              value.add(URLDecoder.decode(param[1], "UTF-8"));
+            }
             decodedParameters.put(param[0], value);
           }
         } catch (UnsupportedEncodingException e) {

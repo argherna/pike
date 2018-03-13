@@ -3,8 +3,10 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -99,7 +101,7 @@ class LdapSession {
     }
   }
 
-  Collection<StringTuple> search(String rdn, String filter, 
+  Map<String, Collection<StringTuple>> search(String rdn, String filter, 
     SearchControls searchControls) throws NamingException {
     String searchBase = getSearchBase(rdn);
     LOGGER.fine(() -> {
@@ -108,12 +110,12 @@ class LdapSession {
     });
 
     NamingEnumeration<SearchResult> result = ldapContext.search(
-        searchBase, filter, searchControls);
-    List<StringTuple> searchResults = loadResults(result);
-    Collections.sort(searchResults);
+      searchBase, filter, searchControls);
+    Map<String, Collection<StringTuple>> searchResults = loadResults(result, 
+      searchBase);
     return searchResults;
   }
-
+  
   String getHostname() {
     try {
       Hashtable<?, ?> env = ldapContext.getEnvironment();
@@ -165,6 +167,27 @@ class LdapSession {
       }
     }
     return attributes;
+  }
+
+  private Map<String, Collection<StringTuple>> loadResults(
+    NamingEnumeration<SearchResult> results, String searchBase) 
+    throws NamingException {
+
+    Map<String, Collection<StringTuple>> records = new HashMap<>();
+    while (results.hasMore()) {
+      SearchResult sr = results.next();
+      String dn = String.format("%s,%s", sr.getName(), searchBase);
+      List<StringTuple> attributes = new ArrayList<>();
+      Attributes attrs = sr.getAttributes();
+      NamingEnumeration<String> attrNames = attrs.getIDs();
+      while (attrNames.hasMore()) {
+        String name = attrNames.next();
+        attributes.addAll(attrsToTuples(attrs, name));
+      }
+      Collections.sort(attributes);
+      records.put(dn, attributes);
+    }
+    return records;
   }
 
   private List<StringTuple> attrsToTuples(Attributes attrs, String name) 

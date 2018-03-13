@@ -12,7 +12,7 @@ find src -type f -name *.java > $SOURCES
 
 # Compile the program.
 #
-javac -d bin @$SOURCES
+javac -Xlint -d bin @$SOURCES
 
 [[ $? -eq 0 ]] && jar cef $MAIN $JAR_FILE \
   -C bin . \

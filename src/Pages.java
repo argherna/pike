@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 
 final class Pages {
 
@@ -36,70 +37,78 @@ final class Pages {
     }
   }
 
-  static String searchForm(String hostname, String authentication) {
-    try {
-      String searchForm = IO.loadUtf8ResourceFromClasspath(
-        "templates/search-form.html");
-  
-      String footer = "";
-      if (hostname != null && authentication != null) {
-        String basedocFooterTemplate = IO.loadUtf8ResourceFromClasspath(
-          "templates/basedoc-footer.html");
-        footer = String.format(basedocFooterTemplate, hostname, 
-          authentication);
-      }
+  static String searchForm(String hostname, String authentication) 
+    throws IOException {
+    String searchFormTemplate = IO.loadUtf8ResourceFromClasspath(
+      "templates/search-form.html");
+    String searchForm = String.format(searchFormTemplate, "", "", "");
 
-      String basedocTemplate = IO.loadUtf8ResourceFromClasspath(
-        "templates/basedoc.html");
-      return String.format(basedocTemplate, "<title>Welcome to Pike!</title>", 
-        searchForm, footer);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    String footer = "";
+    if (hostname != null && authentication != null) {
+      String basedocFooterTemplate = IO.loadUtf8ResourceFromClasspath(
+        "templates/basedoc-footer.html");
+      footer = String.format(basedocFooterTemplate, hostname, 
+        authentication);
     }
+    String basedocTemplate = IO.loadUtf8ResourceFromClasspath(
+      "templates/basedoc.html");
+    return String.format(basedocTemplate, "<title>Welcome to Pike!</title>", 
+      searchForm, footer);
   }
 
-  static String recordView(String filter, Collection<StringTuple> data,
-    String hostname, String authentication) {
-    try {
-      String recordRowTemplate = IO.loadUtf8ResourceFromClasspath(
-        "templates/record-table-row.html");
-      StringBuilder recordRows = new StringBuilder();
-      for (StringTuple result : data) {
-        recordRows.append(String.format(recordRowTemplate, result.s1, 
-          result.s2)).append("\n");
+  static String resultsView(String filter, 
+    Map<String, Collection<StringTuple>> results, String hostname, 
+    String authentication, String rdn, String attrs) throws IOException {
+    String recordRowTemplate = IO.loadUtf8ResourceFromClasspath(
+      "templates/record-table-row.html");
+    String tableTemplate = IO.loadUtf8ResourceFromClasspath(
+      "templates/record-table.html");
+
+    // Render a table for every DN in the result
+    StringBuilder recordTableBuilder = new StringBuilder();
+    for (String dn : results.keySet()) {
+      Collection<StringTuple> data = results.get(dn);
+      StringBuilder rows = new StringBuilder();
+      for (StringTuple datum : data) {
+        rows.append(String.format(recordRowTemplate, datum.s1, datum.s2))
+          .append("\n");
       }
-  
-      String tableTemplate = IO.loadUtf8ResourceFromClasspath(
-        "templates/record-table.html");
-      String recordTable = String.format(tableTemplate, 
-        recordRows.toString());
       
-      String recordHeadTemplate = IO.loadUtf8ResourceFromClasspath(
-        "templates/record-head.html");
-      String recordHead = String.format(recordHeadTemplate, filter);
+      recordTableBuilder.append(String.format(
+        tableTemplate, dn, rows.toString()));
+    }
       
-      String searchForm = IO.loadUtf8ResourceFromClasspath(
-        "templates/search-form.html");
-      
-      String recordBodyTemplate = IO.loadUtf8ResourceFromClasspath(
-        "templates/record-body.html");
-      String recordBody = new StringBuilder(searchForm).append(
-        String.format(recordBodyTemplate, filter, recordTable))
+    String recordHeadTemplate = IO.loadUtf8ResourceFromClasspath(
+      "templates/record-head.html");
+    String recordHead = String.format(recordHeadTemplate, filter);
+    
+    String searchFormTemplate = IO.loadUtf8ResourceFromClasspath(
+      "templates/search-form.html");
+    
+    String rdnValue = Strings.isNullOrEmpty(rdn) ? "" : 
+      String.format("value=\"%s\"", rdn);
+    String attrValues = Strings.isNullOrEmpty(attrs) ? "" : 
+      String.format("value=\"%s\"", attrs);
+
+    String searchForm = String.format(searchFormTemplate, 
+      rdnValue, filter, attrValues);
+
+    String recordBodyTemplate = IO.loadUtf8ResourceFromClasspath(
+      "templates/record-body.html");
+    String recordBody = new StringBuilder(searchForm).append(
+      String.format(recordBodyTemplate, filter, recordTableBuilder.toString()))
         .toString();
 
-      String footer = "";
-      if (hostname != null && authentication != null) {
-        String basedocFooterTemplate = IO.loadUtf8ResourceFromClasspath(
-          "templates/basedoc-footer.html");
-        footer = String.format(basedocFooterTemplate, hostname, 
-          authentication);
-      }
-
-      String basedocTemplate = IO.loadUtf8ResourceFromClasspath(
-        "templates/basedoc.html");
-      return String.format(basedocTemplate, recordHead, recordBody, footer);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    String footer = "";
+    if (hostname != null && authentication != null) {
+      String basedocFooterTemplate = IO.loadUtf8ResourceFromClasspath(
+        "templates/basedoc-footer.html");
+      footer = String.format(basedocFooterTemplate, hostname, 
+        authentication);
     }
+
+    String basedocTemplate = IO.loadUtf8ResourceFromClasspath(
+      "templates/basedoc.html");
+    return String.format(basedocTemplate, recordHead, recordBody, footer);
   }
 }

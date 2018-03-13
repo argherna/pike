@@ -70,7 +70,7 @@ class RecordViewHandler implements HttpHandler {
   }
 
   private byte[] handleGetRecord(HttpExchange exchange) 
-    throws NamingException {
+    throws IOException, NamingException {
     URI requestUri = exchange.getRequestURI();
     String rdn = getRdnFromPath(requestUri.getPath());
     Map<String, List<String>> parameters = 
@@ -79,10 +79,18 @@ class RecordViewHandler implements HttpHandler {
     SearchControls searchControls = IO.getSearchControls(parameters);
     LdapSession ldapSession = (LdapSession) exchange.getHttpContext()
       .getAttributes().get("ldapSession");
-    Collection<StringTuple> results = ldapSession.search(rdn, filter, 
-      searchControls);
-    return Pages.recordView(filter, results, ldapSession.getHostname(),
-      ldapSession.getAuthentication()).getBytes();
+    Map<String, Collection<StringTuple>> results = ldapSession.search(rdn, 
+      filter, searchControls);
+    String attrsToReturn = null;
+    if (parameters.containsKey("attr")) {
+      StringJoiner attrs = new StringJoiner(" ");
+      for (String attr : parameters.get("attr")) {
+        attrs.add(attr);
+      }
+      attrsToReturn = attrs.toString();
+    }
+    return Pages.resultsView(filter, results, ldapSession.getHostname(),
+      ldapSession.getAuthentication(), rdn, attrsToReturn).getBytes();
   }
 
   private String getRdnFromPath(String path) {
