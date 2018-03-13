@@ -148,27 +148,6 @@ class LdapSession {
     }
   }
 
-  private List<StringTuple> loadResults(NamingEnumeration<SearchResult> result) 
-    throws NamingException {
-    List<StringTuple> attributes = new ArrayList<>();
-    while (result.hasMore()) {
-      try {
-        SearchResult sr = result.next();
-        Attributes attrs = sr.getAttributes();
-        NamingEnumeration<String> attrNames = attrs.getIDs();
-        while (attrNames.hasMore()) {
-          String name = attrNames.next();
-          attributes.addAll(attrsToTuples(attrs, name));
-        }
-      } catch (PartialResultException e) {
-        LOGGER.log(Level.FINE, e, () -> {
-          return String.format("Ignoring %s", e.getClass().getName());
-        });
-      }
-    }
-    return attributes;
-  }
-
   private Map<String, Collection<StringTuple>> loadResults(
     NamingEnumeration<SearchResult> results, String searchBase) 
     throws NamingException {
