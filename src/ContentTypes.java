@@ -18,6 +18,7 @@ class ContentTypes {
     types.put("eot", "application/vnd.ms-fontobject");
     types.put("ttf", "application/octet-stream");
     types.put("otf", "application/octet-stream");
+    types.put("form", "application/x-www-form-urlencoded");
     TYPES = Collections.unmodifiableMap(types);
   }
 }

@@ -1,0 +1,60 @@
+
+<section>
+<div class="container">
+<article>
+<header>
+<div class="float-right">
+<a href="localhost-dev?mode=edit" class="btn btn-light">Edit</a>
+<button type="button" class="btn btn-danger">Delete Connection Settings</button>
+</div>
+<h1>New Connection</h1>
+</header>
+<form id="add-connection" action="/connection" method="POST" enctype="application/x-www-form-urlencoded">
+<fieldset class="form-group row">
+<legend class="col-form-legend">Connection Details</legend>
+<div class="form-group">
+<label for="name" class="form-control-label">Name:</label>
+<input class="form-control" type="text" placeholder="Connection name" id="name" name="name" %1$s >
+</div>
+<div class="form-group">
+<label for="ldapurl" class="form-control-label">Server URL:</label>
+<input class="form-control" type="text" placeholder="ldap[s]://host[:port][/dn]" id="ldapurl" name="ldapurl" %2$s >
+</div>
+<div class="form-group">
+<label for="basedn" class="form-control-label">Base DN:</label>
+<input class="form-control" type="text" placeholder="dc=example,dc=com" id="basedn" name="basedn" %3$s >
+</div>
+<div class="form-group">
+<label for="binddn" class="form-control-label">Bind DN:</label>
+<input class="form-control" type="text" placeholder="cn=ldap-user,ou=Users,dc=example,dc=com" id="binddn" name="binddn" %4$s >
+</div>
+<div class="form-group">
+<label for="password" class="form-control-label">Password:</label>
+<input class="form-control" type="password" placeholder="********" id="password" name="password" %5$s >
+<small class="form-text text-muted">Passwords are encrypted when stored.</small>
+</div>
+</fieldset>
+<fieldset class="form-group row">
+<legend class="col-form-legend">Connection Options</legend>
+<div class="form-group">
+<div class="form-check">
+<label for="usestarttls" class="form-check-label">
+<input class="form-check-input" type="checkbox" id="usestarttls" name="usestarttls" %6$s >Use StartTLS
+</label>
+</div>
+</div>
+</fieldset>
+<div class="float-right">
+<a href="/connections" class="btn btn-light">Return to Connections List</a>
+</div>
+<div class="button-group">
+<span class="input-group-btn">
+<input class="btn btn-primary" type="submit" value="Save" %7$s>
+<input class="btn btn-light" type="reset" value="Clear" %7$s>
+<a href="localhost-dev" class="btn btn-light" %7$s>Cancel</a>
+</span>
+</div>
+</form>
+</article>
+</div>
+</section>

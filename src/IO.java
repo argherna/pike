@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -24,12 +25,15 @@ final class IO {
 
   private static final Logger LOGGER = Logger.getLogger(IO.class.getName());
   
+  private IO (){
+    // Empty constructor prevents instantiation.
+  }
+  
   static void sendResponse(HttpExchange exchange, HttpStatus status, 
     byte[] content, String contentType) throws IOException {
     Headers h = exchange.getResponseHeaders();
     h.add("Content-Type", contentType);
-    h.add("Server", String.format("pike/Java %s", 
-      System.getProperty("java.version")));
+    h.add("Server", Server.SERVER_STRING);
     int length = exchange.getRequestMethod().equals("HEAD") ? -1 : 
       content.length;
     exchange.sendResponseHeaders(status.getStatusCode(), length);
@@ -44,40 +48,24 @@ final class IO {
     exchange.close();    
   }
 
-  static String loadUtf8ResourceFromClasspath(String path) throws IOException {
-    byte[] resourceBytes = loadResourceFromClasspath(path);
-    return new String(resourceBytes, Charset.forName("UTF-8"));
-  }
-
-  static byte[] loadResourceFromClasspath(String path) throws IOException {
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    LOGGER.fine(() -> {
-      return String.format("Loading %s...", path);
-    });
-    InputStream resource = IO.class.getResourceAsStream(path);
-    try {
-      if (resource == null) {
-        LOGGER.warning(String.format(
-          "%s not found! Returning empty byte array!", path));
-        return new byte[0];
-      }
-      byte[] buf = new byte[BUF_SZ];
-      while (true) {
-        int read = resource.read(buf);
-        if (read == -1) {
-          break;
+  static void sendResponseWithLocationNoContent(HttpExchange exchange, 
+    HttpStatus status, String contentType, String location) 
+    throws IOException {
+      Headers h = exchange.getResponseHeaders();
+      h.add("Content-Type", contentType);
+      h.add("Server", Server.SERVER_STRING);
+      h.add("Location", location);
+      LOGGER.fine(() -> {
+        StringBuilder headers = new StringBuilder("{");
+        for (String header : h.keySet()) {
+          headers.append(header).append(": ").append(h.get(header).toString())
+            .append(",");
         }
-        bos.write(buf, 0, read);
-      }
-    } finally {
-      if (resource != null) {
-        resource.close();
-      }
-    }
-    LOGGER.fine(() -> {
-      return String.format("%s loaded successfully!", path);
-    });
-    return bos.toByteArray();
+        headers.append("}");
+        return String.format("Response headers %s", headers.toString());
+      });
+      exchange.sendResponseHeaders(status.getStatusCode(), -1);
+      exchange.close();
   }
 
   static Map<String, List<String>> queryToMap(String rawQuery) {
@@ -148,4 +136,45 @@ final class IO {
     return searchControls;
   }
 
+  static String loadUtf8ResourceFromClasspath(String path) throws IOException {
+    byte[] resourceBytes = loadResourceFromClasspath(path);
+    return new String(resourceBytes, Charset.forName("UTF-8"));
+  }
+
+  static byte[] loadResourceFromClasspath(String path) throws IOException {
+    LOGGER.fine(() -> {
+      return String.format("Loading %s...", path);
+    });
+    byte[] contents = null;
+    InputStream resource = IO.class.getResourceAsStream(path);
+    try {
+      if (resource == null) {
+        LOGGER.warning(String.format(
+          "%s not found! Returning empty byte array!", path));
+        return new byte[0];
+      }
+      contents = toByteArray(resource);
+    } finally {
+      if (resource != null) {
+        resource.close();
+      }
+    }
+    LOGGER.fine(() -> {
+      return String.format("%s loaded successfully!", path);
+    });
+    return contents;
+  }
+
+  static byte[] toByteArray(InputStream in) throws IOException {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    byte[] buf = new byte[BUF_SZ];
+    while (true) {
+      int read = in.read(buf);
+      if (read == -1) {
+        break;
+      }
+      bos.write(buf, 0, read);
+    }
+    return bos.toByteArray();    
+  }
 }

@@ -7,6 +7,10 @@ import com.sun.net.httpserver.HttpExchange;
 
 final class RequestLogger {
 
+  private RequestLogger() {
+    // Empty constructor prevents instantiation.
+  }
+  
   private static final Logger LOGGER = Logger.getLogger(
     RequestLogger.class.getName());
 

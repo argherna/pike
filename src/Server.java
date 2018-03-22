@@ -14,11 +14,16 @@ import com.sun.net.httpserver.HttpServer;
 
 class Server {
 
+  static final String SERVER_STRING = String.format("pike/Java %s", 
+    System.getProperty("java.version"));
+  
   private static final int DEFAULT_HTTP_SERVER_PORT = 8080;
 
   private static final Logger LOGGER = Logger.getLogger(
       Server.class.getName());
       
+  private final Filter faviconFilter = new FaviconFilter();
+
   private final Filter logRequestFilter = new LogRequestFilter();
 
   private final Filter readOnlyMethodFilter = new ReadOnlyMethodFilter();
@@ -125,10 +130,12 @@ class Server {
       StaticResourceHandler h1 = new StaticResourceHandler();
       final Server server = new Server(port, ldapSession);
       server.addHandler("/", searchHandler);
-      server.addHandler("/search", searchHandler);
-      server.addHandler("/record", new RecordViewHandler());
+      server.addHandler("/connection", new ConnectionHandler());
+      server.addHandler("/connections", new ConnectionsHandler());
       server.addHandler("/css", h1);
       server.addHandler("/js", h1);
+      server.addHandler("/record", new RecordViewHandler());
+      server.addHandler("/search", searchHandler);
 
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
@@ -193,10 +200,11 @@ class Server {
     HttpContext context = httpServer.createContext(path);
     List<Filter> filters = context.getFilters();
     filters.add(logRequestFilter);
-    filters.add(readOnlyMethodFilter);
+    filters.add(faviconFilter);
+    // filters.add(readOnlyMethodFilter);
     filters.add(internalServerErrorFilter);
     Map<String, Object> attributes = context.getAttributes();
-    attributes.put("ldapSession", ldapSession);
+    attributes.put("ldapSession", null);
     context.setHandler(handler);
     contexts.add(context);
   }

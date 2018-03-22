@@ -43,6 +43,11 @@ class SearchHandler implements HttpHandler {
     String contentType = ContentTypes.TYPES.get("html");
     LdapSession ldapSession = (LdapSession) exchange.getHttpContext()
       .getAttributes().get("ldapSession");
+    if (ldapSession == null) {
+      IO.sendResponseWithLocationNoContent(exchange, 
+        HttpStatus.TEMPORARY_REDIRECT, contentType, "/connections");
+      return;
+    }
     String rawQuery = exchange.getRequestURI().getRawQuery();
     if (Strings.isNullOrEmpty(rawQuery)) {
       content = Pages.searchForm(ldapSession.getHostname(), 
