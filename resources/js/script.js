@@ -1,30 +1,23 @@
-function show(type)
-{
-    count = 0;
-    for (var key in methods) {
-        var row = document.getElementById(key);
-        if ((methods[key] &  type) != 0) {
-            row.style.display = '';
-            row.className = (count++ % 2) ? rowColor : altColor;
+function delete_connections(names) {
+  names.forEach(element => {
+    $.ajax({
+      url: '/connection/' + element.name,
+      type: 'DELETE',
+      statusCode: {
+        204: function() {
+          console.log('Successfully deleted ' + element.name);
         }
-        else
-            row.style.display = 'none';
-    }
-    updateTabs(type);
+      }
+    });
+    console.log('Deleting ' + element.name);
+  });
+  window.location.replace('/connections');
 }
 
-function updateTabs(type)
-{
-    for (var value in tabs) {
-        var sNode = document.getElementById(tabs[value][0]);
-        var spanNode = sNode.firstChild;
-        if (value == type) {
-            sNode.className = activeTableTab;
-            spanNode.innerHTML = tabs[value][1];
-        }
-        else {
-            sNode.className = tableTab;
-            spanNode.innerHTML = "<a href=\"javascript:show("+ value + ");\">" + tabs[value][1] + "</a>";
-        }
-    }
+function use_connection(conn_name) {
+  console.log('Using ' + conn_name);
+}
+
+function connection_name_link_formatter(value, row, index, field) {
+  return '<a href="/connection/' + value + '">' + value + '</a>';
 }
