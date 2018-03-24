@@ -32,19 +32,14 @@ class ConnectionsHandler implements HttpHandler {
       return;
     }
 
-    List<String> ldapHosts = new ArrayList<>();
-    for (String connectionName : connectionNames) {
-      Preferences connSettings = 
-        Settings.getConnectionSettings(connectionName);
-      String ldapUrl = connSettings.get(Settings.LDAP_URL_SETTING, "not-set");
-      if (!ldapUrl.equals("not-set")) {
-        ldapHosts.add(URI.create(ldapUrl).getHost());
-      } 
+    String path = exchange.getRequestURI().getRawPath();
+    String handlerPath = exchange.getHttpContext().getPath();
+    if (path.endsWith(handlerPath)) {
+      content = Pages.renderConnections(exchange.getRequestURI()).getBytes();
+    } else if (path.endsWith("settings")) {
+      contentType = ContentTypes.TYPES.get("json");
+      content = Json.renderConnections(connectionSettings).getBytes();
     }
-    List<StringTuple> connectionData = Strings.zip(
-      Arrays.asList(connectionNames), ldapHosts);
-
-    content = Pages.renderConnections(connectionData).getBytes();
     IO.sendResponse(exchange, status, content, contentType);
   }
 }

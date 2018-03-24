@@ -12,6 +12,7 @@ class ContentTypes {
     types.put("html", "text/html");
     types.put("jpg", "image/jpeg");
     types.put("js", "application/javascript");
+    types.put("map", "application/javascript");
     types.put("png", "image/png");
     types.put("svg", "image/svg+xml");
     types.put("woff", "application/x-font-woff");
@@ -19,6 +20,7 @@ class ContentTypes {
     types.put("ttf", "application/octet-stream");
     types.put("otf", "application/octet-stream");
     types.put("form", "application/x-www-form-urlencoded");
+    types.put("json", "application/json");
     TYPES = Collections.unmodifiableMap(types);
   }
 }

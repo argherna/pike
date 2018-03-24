@@ -34,8 +34,16 @@ final class IO {
     Headers h = exchange.getResponseHeaders();
     h.add("Content-Type", contentType);
     h.add("Server", Server.SERVER_STRING);
-    int length = exchange.getRequestMethod().equals("HEAD") ? -1 : 
-      content.length;
+    if (contentType.equals(ContentTypes.TYPES.get("json"))) {
+      h.add("Access-Control-Allow-Origin", "*");
+      h.add("Access-Control-Allow-Headers", "origin, content-type, accept");
+    }
+
+    // Avoid NPE when writing response by setting content length to -1 when
+    // request method is HEAD or byte array is 0-length.
+    int length = 
+      exchange.getRequestMethod().equals("HEAD") || content.length == 0 ||
+        status == HttpStatus.NO_CONTENT ? -1 : content.length;
     exchange.sendResponseHeaders(status.getStatusCode(), length);
 
     if (content.length > 0) {

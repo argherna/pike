@@ -1,8 +1,11 @@
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Formatter;
 import java.util.List;
 import java.util.Map;
+import java.util.prefs.Preferences;
 
 final class Pages {
 
@@ -166,8 +169,9 @@ final class Pages {
       renderConnectionButtonGroup(f, name, inEditMode);
 
       // If editing, add a Cancel button.
-      if (inEditMode && !Strings.isNullOrEmpty(name)) {
-        f.format("<a href=\"%s\" class=\"btn btn-light\">Cancel</a>", name);
+      if (inEditMode) {
+        String target = Strings.isNullOrEmpty(name) ? "/connections" : name;
+        f.format("<a href=\"%s\" class=\"btn btn-light\">Cancel</a>", target);
       }
 
       f.out().append("</span></div></form></article></div></section>");
@@ -177,22 +181,12 @@ final class Pages {
     }
   }
 
-  static String renderConnections(List<StringTuple> connectionNames) 
-    throws IOException {
-    try (Formatter f = new Formatter(startRender())) {
-      f.out().append("<title>Connections</title>");
-      headToBody(f.out());
+  static String renderConnections(URI requestURI) throws IOException {
+    try (Formatter f = new Formatter()) {
 
-      f.out().append("<h1>Connections</h1>");
-      f.out().append(IO.loadUtf8ResourceFromClasspath(
-        "templates/connections-open-list.html"));
-      for (StringTuple connectionName : connectionNames) {
-        f.format("<li><a href=\"/connection/%1$s\">%1$s</a> %2$s</li>", 
-          connectionName.s1, connectionName.s2);
-      }
-      f.out().append(IO.loadUtf8ResourceFromClasspath(
-        "templates/connections-close-list.html"));
-      endRender(f.out());
+      // FIXME: Need to get crap from HttpExchange object I guess. Doing this for now.
+      String dataUrl = URI.create("http://localhost:8085/connections/settings").toASCIIString();
+      f.format(IO.loadUtf8ResourceFromClasspath("templates/connections.html"), dataUrl);
       return f.toString();
     }
   }
@@ -339,27 +333,21 @@ final class Pages {
     return String.format(basedocTemplate, recordHead, recordBody, footer);
   }
 
-  static String connections() throws IOException {
-    String basedocTemplate = IO.loadUtf8ResourceFromClasspath(
-      "templates/basedoc.html");
-    return String.format(basedocTemplate, "<title>Connections</title>", "<h1>Connections</h1><p>Connections list goes here.", "");
-  }
-
   public static void main(String... args) {
     try {
       for (int i = 0; i < 100; i++) {
-      long startWithFormatter = System.currentTimeMillis();
-      renderError(HttpStatus.INTERNAL_SERVER_ERROR, "A bad error occurred",
-        "localhost","uid=foo");
-      long endWithFormatter = System.currentTimeMillis();
-      long startWithStringFormat = System.currentTimeMillis();
-      errorHtml(HttpStatus.INTERNAL_SERVER_ERROR, "A bad error occurred", 
-        "localhost", "uid=foo");
-      long endWithStringFormat = System.currentTimeMillis();
-      System.out.printf("    Time with formatter: %d MS%n", 
-        (endWithFormatter - startWithFormatter));
-      System.out.printf("Time with String.format: %d MS%n",
-        (endWithStringFormat - startWithStringFormat));
+        long startWithFormatter = System.currentTimeMillis();
+        renderError(HttpStatus.INTERNAL_SERVER_ERROR, "A bad error occurred",
+          "localhost","uid=foo");
+        long endWithFormatter = System.currentTimeMillis();
+        long startWithStringFormat = System.currentTimeMillis();
+        errorHtml(HttpStatus.INTERNAL_SERVER_ERROR, "A bad error occurred", 
+          "localhost", "uid=foo");
+        long endWithStringFormat = System.currentTimeMillis();
+        System.out.printf("    Time with formatter: %d MS%n", 
+          (endWithFormatter - startWithFormatter));
+        System.out.printf("Time with String.format: %d MS%n",
+          (endWithStringFormat - startWithStringFormat));
       }
     } catch (IOException e) {
       e.printStackTrace(System.err);

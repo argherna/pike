@@ -4,6 +4,8 @@ enum HttpStatus {
 
   CREATED(201, "Created"),
   
+  NO_CONTENT(204, "No Content"),
+  
   FOUND (302, "Found"),
   
   TEMPORARY_REDIRECT(307, "Temporary Redirect"), 

@@ -37,6 +37,8 @@ class ConnectionHandler implements HttpHandler {
     if (exchange.getRequestMethod().equals("GET") || 
       exchange.getRequestMethod().equals("HEAD")) {
       doGet(exchange);
+    } else if (exchange.getRequestMethod().equals("DELETE")) {
+      doDelete(exchange);
     } else {
       doPost(exchange);
     }
@@ -74,16 +76,8 @@ class ConnectionHandler implements HttpHandler {
         throw new RuntimeException(e);
       } 
     } else {
-
-      // Might be the first time using the application.
-      Preferences allConnections = Settings.getAllConnectionSettings();
-      try {
-        if (allConnections.childrenNames().length == 0) {
-          mode = "edit";
-        }
-      } catch (BackingStoreException e) {
-        throw new RuntimeException(e);
-      }
+      // Might be a new connection.
+      mode = "edit";
     }
     content = Pages.renderConnection(name, ldapUrl, baseDn, bindDn, 
       useStartTls, mode).getBytes();
@@ -131,5 +125,25 @@ class ConnectionHandler implements HttpHandler {
     IO.sendResponseWithLocationNoContent(exchange, HttpStatus.FOUND, 
       ContentTypes.TYPES.get("html"), 
       "/connection/" + name);
+  }
+
+  private void doDelete(HttpExchange exchange) throws IOException {
+    String path = exchange.getRequestURI().getPath();
+    if (!path.endsWith(exchange.getHttpContext().getPath())) {
+      String[] pathElements = path.split("/");
+      String connectionName = pathElements[pathElements.length - 1];
+      Preferences connectionSettings = Settings.getConnectionSettings(
+        connectionName);
+      try {
+        connectionSettings.removeNode();
+        connectionSettings.flush();
+        LOGGER.info(
+          String.format("Deleted connection settings for %s", connectionName));
+      } catch (BackingStoreException e) {
+        throw new RuntimeException(e);
+      }
+      IO.sendResponse(exchange, HttpStatus.NO_CONTENT, new byte[0],
+        ContentTypes.TYPES.get("html"));
+    }
   }
 }
