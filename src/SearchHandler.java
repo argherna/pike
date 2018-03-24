@@ -44,7 +44,7 @@ class SearchHandler implements HttpHandler {
     LdapSession ldapSession = (LdapSession) exchange.getHttpContext()
       .getAttributes().get("ldapSession");
     if (ldapSession == null) {
-      IO.sendResponseWithLocationNoContent(exchange, 
+      Http.sendResponseWithLocationNoContent(exchange, 
         HttpStatus.TEMPORARY_REDIRECT, contentType, "/connections");
       return;
     }
@@ -53,12 +53,12 @@ class SearchHandler implements HttpHandler {
       content = Pages.searchForm(ldapSession.getHostname(), 
         ldapSession.getAuthentication()).getBytes();
     } else {
-      Map<String, List<String>> parameters = IO.queryToMap(rawQuery, 
+      Map<String, List<String>> parameters = Http.queryToMap(rawQuery, 
         PARAM_PROCS);
       String rdn = parameters.containsKey("rdn") ? 
         parameters.get("rdn").get(0) : "";
-      String filter = IO.getFilter(parameters);
-      SearchControls searchControls = IO.getSearchControls(parameters);
+      String filter = Ldap.getFilter(parameters);
+      SearchControls searchControls = Ldap.getSearchControls(parameters);
       Map<String, Collection<StringTuple>> results = new HashMap<>();
       try {
         results = ldapSession.search(rdn, filter, searchControls);
@@ -77,6 +77,6 @@ class SearchHandler implements HttpHandler {
       }
     }
 
-    IO.sendResponse(exchange, status, content, contentType);
+    Http.sendResponse(exchange, status, content, contentType);
   }
 }

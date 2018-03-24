@@ -21,7 +21,7 @@ class FaviconFilter extends Filter {
       byte[] content = Pages.errorHtml(status, 
         "Server does not have a favicon").getBytes();
       String contentType = ContentTypes.TYPES.get("html");
-      IO.sendResponse(exchange, status, content, contentType);
+      Http.sendResponse(exchange, status, content, contentType);
     } else {
       chain.doFilter(exchange);
     }

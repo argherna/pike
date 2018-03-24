@@ -27,7 +27,7 @@ class ConnectionsHandler implements HttpHandler {
 
     if (connectionNames.length == 0) {
       status = HttpStatus.TEMPORARY_REDIRECT;
-      IO.sendResponseWithLocationNoContent(exchange, status, contentType, 
+      Http.sendResponseWithLocationNoContent(exchange, status, contentType, 
         "/connection");
       return;
     }
@@ -40,6 +40,6 @@ class ConnectionsHandler implements HttpHandler {
       contentType = ContentTypes.TYPES.get("json");
       content = Json.renderConnections(connectionSettings).getBytes();
     }
-    IO.sendResponse(exchange, status, content, contentType);
+    Http.sendResponse(exchange, status, content, contentType);
   }
 }

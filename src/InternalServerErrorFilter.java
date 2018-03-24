@@ -27,7 +27,7 @@ class InternalServerErrorFilter extends Filter {
       HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
       byte[] content = Pages.errorHtml(status, 
         "An internal error occurred! Check the server logs!").getBytes();
-      IO.sendResponse(exchange, status, content, ContentTypes.TYPES.get("html"));
+      Http.sendResponse(exchange, status, content, ContentTypes.TYPES.get("html"));
     }
   }
 }

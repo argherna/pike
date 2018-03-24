@@ -66,7 +66,7 @@ class ConnectionHandler implements HttpHandler {
             Settings.USE_STARTTLS_SETTING, false);
         } 
         if (exchange.getRequestURI().getRawQuery() != null) {
-          Map<String, List<String>> parameters = IO.queryToMap(
+          Map<String, List<String>> parameters = Http.queryToMap(
             exchange.getRequestURI().getRawQuery());
           if (parameters.containsKey("mode")) {
             mode = parameters.get("mode").get(0);
@@ -83,7 +83,7 @@ class ConnectionHandler implements HttpHandler {
       useStartTls, mode).getBytes();
     HttpStatus status = HttpStatus.OK;
     String contentType = ContentTypes.TYPES.get("html");
-    IO.sendResponse(exchange, status, content, contentType);
+    Http.sendResponse(exchange, status, content, contentType);
   }
 
   private void doPost(HttpExchange exchange) throws IOException {
@@ -96,7 +96,7 @@ class ConnectionHandler implements HttpHandler {
     if (contentType.equals(ContentTypes.TYPES.get("form"))) {
       String formParameters = new String(IO.toByteArray(requestBodyStream),
         "UTF-8");
-      connectionSettings.putAll(IO.queryToMap(formParameters, PARAM_PROCS));
+      connectionSettings.putAll(Http.queryToMap(formParameters, PARAM_PROCS));
     }
 
     String name = connectionSettings.get("name") != null ?
@@ -122,7 +122,7 @@ class ConnectionHandler implements HttpHandler {
       return String.format(
         "Settings for %1$s saved; sending to /connection/%1$s", name);
     });
-    IO.sendResponseWithLocationNoContent(exchange, HttpStatus.FOUND, 
+    Http.sendResponseWithLocationNoContent(exchange, HttpStatus.FOUND, 
       ContentTypes.TYPES.get("html"), 
       "/connection/" + name);
   }
@@ -142,7 +142,7 @@ class ConnectionHandler implements HttpHandler {
       } catch (BackingStoreException e) {
         throw new RuntimeException(e);
       }
-      IO.sendResponse(exchange, HttpStatus.NO_CONTENT, new byte[0],
+      Http.sendResponse(exchange, HttpStatus.NO_CONTENT, new byte[0],
         ContentTypes.TYPES.get("html"));
     }
   }

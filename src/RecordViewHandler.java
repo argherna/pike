@@ -61,7 +61,7 @@ class RecordViewHandler implements HttpHandler {
         ldapSession.getHostname(), ldapSession.getAuthentication()).getBytes();
     }
     
-    IO.sendResponse(exchange, status, content, contentType);
+    Http.sendResponse(exchange, status, content, contentType);
   }
 
   private String getLastPathComponent(String uriPath) {
@@ -74,9 +74,9 @@ class RecordViewHandler implements HttpHandler {
     URI requestUri = exchange.getRequestURI();
     String rdn = getRdnFromPath(requestUri.getPath());
     Map<String, List<String>> parameters = 
-      IO.queryToMap(requestUri.getRawQuery());
-    String filter = IO.getFilter(parameters);
-    SearchControls searchControls = IO.getSearchControls(parameters);
+      Http.queryToMap(requestUri.getRawQuery());
+    String filter = Ldap.getFilter(parameters);
+    SearchControls searchControls = Ldap.getSearchControls(parameters);
     LdapSession ldapSession = (LdapSession) exchange.getHttpContext()
       .getAttributes().get("ldapSession");
     Map<String, Collection<StringTuple>> results = ldapSession.search(rdn, 
