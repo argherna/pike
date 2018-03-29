@@ -1,10 +1,25 @@
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+import java.util.prefs.Preferences;
 
+import javax.naming.Context;
+import javax.naming.NamingException;
 import javax.naming.directory.SearchControls;
+import javax.naming.ldap.InitialLdapContext;
+import javax.naming.ldap.LdapContext;
+import javax.naming.ldap.StartTlsRequest;
 
 final class Ldap {
   
+  private static final Logger LOGGER = Logger.getLogger(Ldap.class.getName());
+
   private Ldap() {
     // Empty constructor prevents instantiation.
   }
@@ -43,5 +58,50 @@ final class Ldap {
     searchControls.setSearchScope(getSearchScope(parameters));
     searchControls.setReturningAttributes(getReturnAttributes(parameters));
     return searchControls;
+  }
+
+  static LdapContext createLdapContext(String connectionName) 
+    throws IOException, NamingException, NoSuchAlgorithmException,
+    CertificateException, KeyStoreException, UnrecoverableKeyException {
+    Preferences connection = Settings.getConnectionSettings(connectionName);
+    String ldapUrl = connection.get(Settings.LDAP_URL_SETTING, "");
+    String baseDn = connection.get(Settings.BASE_DN_SETTING, "");
+    String bindDn = connection.get(Settings.BIND_DN_SETTING, "");
+    byte[] passwordBytes = connection.getByteArray(Settings.PASSWORD_SETTING, 
+      new byte[0]);
+    String password = new String(Settings.byteArrayToSecretText(bindDn, 
+      passwordBytes));
+    AuthType authType = AuthType.valueOf(
+      connection.get(Settings.AUTHTYPE_SETTING, "").toUpperCase());
+    ReferralPolicy referralPolicy = ReferralPolicy.valueOf(
+      connection.get(Settings.REFERRAL_POLICY_SETTING, "").toUpperCase());
+    boolean useStartTls = connection.getBoolean(Settings.USE_STARTTLS_SETTING,
+      false);
+    return createLdapContext(ldapUrl, baseDn, bindDn, password, authType, 
+      referralPolicy, useStartTls);
+  }
+
+  static LdapContext createLdapContext(String ldapUrl, String baseDn,
+    String bindDn, String password, AuthType authType, 
+    ReferralPolicy referralPolicy, boolean useStartTls) 
+    throws IOException, NamingException {
+    Hashtable<String, String> env = new Hashtable<>();
+    env.put(Context.INITIAL_CONTEXT_FACTORY, 
+      "com.sun.jndi.ldap.LdapCtxFactory");
+    env.put(Context.PROVIDER_URL, ldapUrl);
+    LdapContext ldapContext = new InitialLdapContext(env, null);
+    if (useStartTls) {
+      LOGGER.config("Starting TLS session...");
+      ldapContext.extendedOperation(new StartTlsRequest());
+    }
+    ldapContext.addToEnvironment(Context.SECURITY_AUTHENTICATION, 
+      authType.toString().toLowerCase());
+    if (authType != AuthType.NONE) {
+      ldapContext.addToEnvironment(Context.SECURITY_PRINCIPAL, bindDn);
+      ldapContext.addToEnvironment(Context.SECURITY_CREDENTIALS, password);
+    }
+    ldapContext.addToEnvironment(Context.REFERRAL, 
+      referralPolicy.toString().toLowerCase());
+    return ldapContext;
   }
 }

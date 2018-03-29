@@ -35,7 +35,7 @@ class ConnectionsHandler implements HttpHandler {
     String path = exchange.getRequestURI().getRawPath();
     String handlerPath = exchange.getHttpContext().getPath();
     if (path.endsWith(handlerPath)) {
-      content = Pages.renderConnections(exchange.getRequestURI()).getBytes();
+      content = IO.loadResourceFromClasspath("templates/connections.html");
     } else if (path.endsWith("settings")) {
       contentType = ContentTypes.TYPES.get("json");
       content = Json.renderConnections(connectionSettings).getBytes();

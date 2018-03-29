@@ -29,7 +29,7 @@
               data-classes="table table-sm table-no-bordered"
               data-striped="true"
               data-toggle="table" 
-              data-url="%s">
+              data-url="/connections/settings">
               <thead>
                 <tr>
                   <th scope="col" data-field="state" data-checkbox="true"></th>
@@ -48,77 +48,111 @@
     <script src="../../../js/jquery.min.js"></script>
     <script src="../../../js/bootstrap.min.js"></script>
     <script src="../../../js/bootstrap-table.js"></script>
-    <script src="../../../js/script.js"></script>
     <script>
-    var checkedRows = [];
-    var conn_name = '';
-    $('#connections').on('uncheck-all.bs.table', function(rows) {
-      checkedRows = [];
-      $('#delConnection').addClass('disabled');
-      $('#delConnection').attr('href', '#');
-      $('#newConnection').removeClass('disabled');
-      $('#newConnection').attr('href', '/connection');
-      $('#useConnection').addClass('disabled');
-      $('#useConnection').attr('href', '#');
-    });
 
-    $('#connections').on('check-all.bs.table', function(rows) {
-      let table_rows = rows.target.children.item(1).children;
-      for (let i = 0; i < table_rows.length; i++) {
-        let table_row = table_rows[i];
-        checkedRows.push({name: table_row.children.item(1).children.item(0).innerText});
+      function delete_connections(names) {
+        names.forEach(element => {
+          console.log('Deleting ' + element.name);
+          $.ajax({
+            url: '/connection/' + element.name,
+            type: 'DELETE',
+            statusCode: {
+              204: function() {
+                console.log('Successfully deleted ' + element.name);
+              }
+            }
+          });
+        });
+        window.location.replace('/connections');
       }
-      $('#delConnection').removeClass('disabled');
-      $('#delConnection').attr('href', 'javascript:delete_connections(checkedRows)');
-      $('#newConnection').addClass('disabled');
-      $('#newConnection').attr('href', '#');
-      if (checkedRows.length == 1) {
-        conn_name = checkedRows[0].name;
-        $('#useConnection').removeClass('disabled');
-        $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
-      } else {
-        $('#useConnection').addClass('disabled');
-        $('#useConnection').attr('href', '#');
-      }
-    });
 
-    $('#connections').on('check.bs.table', function (e, row) {
-      checkedRows.push({name: row.name});
-      $('#delConnection').removeClass('disabled');
-      $('#delConnection').attr('href', 'javascript:delete_connections(checkedRows)');
-      $('#newConnection').addClass('disabled');
-      $('#newConnection').attr('href', '#');
-      if (checkedRows.length == 1) {
-        conn_name = row.name;
-        $('#useConnection').removeClass('disabled');
-        $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
-      } else {
-        $('#useConnection').addClass('disabled');
-        $('#useConnection').attr('href', '#');
+      function use_connection(conn_name) {
+        console.log('Using ' + conn_name);
+        $.ajax({
+          url: '/connection/' + conn_name,
+          type: 'PATCH',
+          statusCode: {
+            204: function() {
+              console.log('Activated ' + conn_name);
+            }
+          }
+        });
+        window.location.replace('/search');
       }
-    });
-    
-    $('#connections').on('uncheck.bs.table', function (e, row) {
-      $.each(checkedRows, function(index, value) {
-        if (value.name === row.name) {
-          checkedRows.splice(index, 1);
-        }
-      });
-      if (checkedRows.length == 0) {
+
+      function connection_name_link_formatter(value, row, index, field) {
+        return '<a href="/connection/' + value + '">' + value + '</a>';
+      }
+
+      var checkedRows = [];
+      var conn_name = '';
+      $('#connections').on('uncheck-all.bs.table', function(rows) {
+        checkedRows = [];
         $('#delConnection').addClass('disabled');
         $('#delConnection').attr('href', '#');
         $('#newConnection').removeClass('disabled');
         $('#newConnection').attr('href', '/connection');
-      }
-      if (checkedRows.length == 1) {
-        conn_name = row.name;
-        $('#useConnection').removeClass('disabled');
-        $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
-      } else {
         $('#useConnection').addClass('disabled');
         $('#useConnection').attr('href', '#');
-      }
-    });
+      });
+  
+      $('#connections').on('check-all.bs.table', function(rows) {
+        let table_rows = rows.target.children.item(1).children;
+        for (let i = 0; i < table_rows.length; i++) {
+          let table_row = table_rows[i];
+          checkedRows.push({name: table_row.children.item(1).children.item(0).innerText});
+        }
+        $('#delConnection').removeClass('disabled');
+        $('#delConnection').attr('href', 'javascript:delete_connections(checkedRows)');
+        $('#newConnection').addClass('disabled');
+        $('#newConnection').attr('href', '#');
+        if (checkedRows.length == 1) {
+          conn_name = checkedRows[0].name;
+          $('#useConnection').removeClass('disabled');
+          $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
+        } else {
+          $('#useConnection').addClass('disabled');
+          $('#useConnection').attr('href', '#');
+        }
+      });
+  
+      $('#connections').on('check.bs.table', function (e, row) {
+        checkedRows.push({name: row.name});
+        $('#delConnection').removeClass('disabled');
+        $('#delConnection').attr('href', 'javascript:delete_connections(checkedRows)');
+        $('#newConnection').addClass('disabled');
+        $('#newConnection').attr('href', '#');
+        if (checkedRows.length == 1) {
+          conn_name = row.name;
+          $('#useConnection').removeClass('disabled');
+          $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
+        } else {
+          $('#useConnection').addClass('disabled');
+          $('#useConnection').attr('href', '#');
+        }
+      });
+      
+      $('#connections').on('uncheck.bs.table', function (e, row) {
+        $.each(checkedRows, function(index, value) {
+          if (value.name === row.name) {
+            checkedRows.splice(index, 1);
+          }
+        });
+        if (checkedRows.length == 0) {
+          $('#delConnection').addClass('disabled');
+          $('#delConnection').attr('href', '#');
+          $('#newConnection').removeClass('disabled');
+          $('#newConnection').attr('href', '/connection');
+        }
+        if (checkedRows.length == 1) {
+          conn_name = row.name;
+          $('#useConnection').removeClass('disabled');
+          $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
+        } else {
+          $('#useConnection').addClass('disabled');
+          $('#useConnection').attr('href', '#');
+        }
+      });
     </script>
   </body>
 </html>

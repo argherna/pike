@@ -18,7 +18,7 @@ class FaviconFilter extends Filter {
     String path = exchange.getRequestURI().getPath();
     if (path.endsWith(FAVICON_PATH)) {
       HttpStatus status = HttpStatus.NOT_FOUND;
-      byte[] content = Pages.errorHtml(status, 
+      byte[] content = Html.renderError(status, 
         "Server does not have a favicon").getBytes();
       String contentType = ContentTypes.TYPES.get("html");
       Http.sendResponse(exchange, status, content, contentType);

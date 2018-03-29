@@ -49,7 +49,7 @@ class RecordViewHandler implements HttpHandler {
         });
       } catch (InvalidNameException e) {
         status = HttpStatus.NOT_FOUND;
-        content = Pages.errorHtml(status, 
+        content = Html.renderError(status, 
           "No records found for the given filter.",
           ldapSession.getHostname(), ldapSession.getAuthentication())
           .getBytes();
@@ -57,7 +57,7 @@ class RecordViewHandler implements HttpHandler {
         throw new RuntimeException(e);
       }
     } else {
-      content = Pages.errorHtml(HttpStatus.BAD_REQUEST, "Cannot service request.", 
+      content = Html.renderError(HttpStatus.BAD_REQUEST, "Cannot service request.", 
         ldapSession.getHostname(), ldapSession.getAuthentication()).getBytes();
     }
     
@@ -89,7 +89,7 @@ class RecordViewHandler implements HttpHandler {
       }
       attrsToReturn = attrs.toString();
     }
-    return Pages.resultsView(filter, results, ldapSession.getHostname(),
+    return Html.resultsView(filter, results, ldapSession.getHostname(),
       ldapSession.getAuthentication(), rdn, attrsToReturn).getBytes();
   }
 

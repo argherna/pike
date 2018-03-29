@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <link rel="stylesheet" type="text/css" href="../../../css/bootstrap.min.css">
+    <title>New Connection</title>
+  </head>
+  <body>
+    <section>
+      <div class="container">
+        <div class="float-right">
+          <a style="display:none" id="edit" href="#" class="btn btn-light">Edit</a>
+        </div>
+        <h1 id="h1">New Connection</h1>
+        <article>
+          <form id="add-connection" action="/connection" method="POST" enctype="application/x-www-form-urlencoded">
+            <fieldset class="form-group row">
+              <legend class="col-form-legend">Connection Details</legend>
+              <div class="form-group">
+                <label for="name" class="form-control-label">Name:</label>
+                <input class="form-control" type="text" placeholder="Connection name" id="name" name="name">
+              </div>
+              <div class="form-group">
+                <label for="ldapurl" class="form-control-label">Server URL:</label>
+                <input class="form-control" type="text" placeholder="ldap[s]://host[:port][/dn]" id="ldapurl" name="ldapurl">
+              </div>
+              <div class="form-group">
+                <label for="basedn" class="form-control-label">Base DN:</label>
+                <input class="form-control" type="text" placeholder="dc=example,dc=com" id="basedn" name="basedn">
+              </div>
+              <div class="form-group">
+                <label for="binddn" class="form-control-label">Bind DN:</label>
+                <input class="form-control" type="text" placeholder="cn=ldap-user,ou=Users,dc=example,dc=com" id="binddn" name="binddn">
+              </div>
+              <div class="form-group">
+                <label for="password" class="form-control-label">New Password:</label>
+                <input class="form-control" type="password" placeholder="********" id="password" name="password">
+                <small class="form-text text-muted">Passwords are encrypted when stored. Password can be changed to new value when editing a connection. No value when editing means the password will not be changed.</small>
+              </div>
+            </fieldset>
+            <fieldset class="form-group row">
+              <legend class="col-form-legend">Connection Options</legend>
+              <div class="form-group">
+                <div class="form-check">
+                  <label for="usestarttls" class="form-check-label">
+                    <input class="form-check-input" type="checkbox" id="usestarttls" name="usestarttls">Use StartTLS
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+            <div class="float-right">
+              <a id="return" href="/connections" class="btn btn-light">Return to Connections List</a>
+            </div>
+            <div class="button-group">
+              <span class="input-group-btn">
+                <input class="btn btn-primary" type="submit" value="Save" id="save">
+                <input class="btn btn-light" type="reset" value="Clear" id="clear">
+                <a style="display:none" id="cancel" href="#" class="btn btn-light">Cancel</a>
+              </span>
+            </div>
+          </form>
+        </article>
+      </div>
+    </section>
+    <script src="../../../js/popper.min.js"></script>
+    <script src="../../../js/jquery.min.js"></script>
+    <script src="../../../js/bootstrap.min.js"></script>
+    <script>
+
+      $.urlPath = function() {
+        var path = location.pathname.split("/");
+        if (path[path.length - 1] !== 'connection') {
+          return path[path.length - 1];
+        }
+        return 0;
+      }
+
+      var urlPath = $.urlPath();
+
+      $.urlParam = function(name) {
+        var results = new RegExp('[\?&]' + name + '=([^&#]*)')
+                        .exec(window.location.href);
+        if (results) {
+          return results[1]
+        } 
+        return 0;
+      }
+
+      $.editModeOn = function() {
+        if (urlPath !== 0) {
+          $('#h1').text('Edit ' + urlPath);
+          document.title = 'Edit ' + urlPath;
+        }
+        $('#name').removeAttr('disabled');
+        $('#ldapurl').removeAttr('disabled');
+        $('#basedn').removeAttr('disabled');
+        $('#binddn').removeAttr('disabled');
+        $('#password').removeAttr('disabled');
+        $('#usestarttls').removeAttr('disabled');
+        $('#save').removeAttr('disabled');
+        $('#clear').removeAttr('disabled');
+        $('#cancel').removeAttr('style');
+        $('#return').attr('style', 'display:none');
+        $('#edit').attr('style', 'display:none');
+      }
+
+      $.editModeOff = function() {
+        if (urlPath !== 0) {
+          $('#h1').text(urlPath);
+          document.title = urlPath;
+        }
+        $('#name').attr('disabled', '');
+        $('#ldapurl').attr('disabled', '');
+        $('#basedn').attr('disabled', '');
+        $('#binddn').attr('disabled', '');
+        $('#password').attr('disabled', '');
+        $('#usestarttls').attr('disabled', '');
+        $('#save').attr('disabled', '');
+        $('#clear').attr('disabled', '');
+        $('#cancel').attr('style', 'display:none');
+        $('#edit').removeAttr('style');
+        $('#return').removeAttr('style');
+        $('#cancel').attr('style', 'display:none');
+      }
+
+      $(function() {
+        if (urlPath !== 0) {
+          $.ajax({
+            headers : {
+              Accept: 'application/json'
+            },
+            url : '/connection/' + urlPath
+          }).done(function(settings) {
+              $('#name').attr('value', settings.name);
+              $('#ldapurl').attr('value', settings.ldapUrl);
+              $('#basedn').attr('value', settings.baseDn);
+              $('#binddn').attr('value', settings.bindDn);
+              var useStartTls = settings.useStartTls == true ? 'checked' : 0;
+              if (useStartTls) {
+                $('#usestarttls').attr('checked', '');
+              }
+            });
+        }
+        if ($.urlParam('mode') === 'edit' || urlPath === 0) {
+          $.editModeOn();
+        } else {
+          $.editModeOff();
+        }
+      });
+
+      $('#edit').click(function(e) {
+        $.editModeOn();
+      });
+
+      $('#cancel').click(function(e) {
+        if (urlPath == 0) {
+          window.location.replace('/connections');
+        } else {
+          $.editModeOff();
+        }
+      });
+    </script>
+  </body>
+</html>

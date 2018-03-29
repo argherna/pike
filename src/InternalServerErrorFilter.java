@@ -25,7 +25,7 @@ class InternalServerErrorFilter extends Filter {
       LOGGER.log(Level.SEVERE, 
         "Unhandled exception! Returning Internal Server Error", e);
       HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
-      byte[] content = Pages.errorHtml(status, 
+      byte[] content = Html.renderError(status, 
         "An internal error occurred! Check the server logs!").getBytes();
       Http.sendResponse(exchange, status, content, ContentTypes.TYPES.get("html"));
     }

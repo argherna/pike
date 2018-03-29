@@ -21,7 +21,9 @@ class ConnectionHandler implements HttpHandler {
 
   private static final Function<String, List<String>> CHECKBOX_PROCESSOR =
     s -> {
-      return Arrays.asList(Boolean.valueOf(s).toString());
+      boolean booleanValue = (s.equalsIgnoreCase("on") || 
+        s.equalsIgnoreCase("true"));
+      return Arrays.asList(Boolean.valueOf(booleanValue).toString());
     };
   
   private static final Map<String, Function<String, List<String>>> PARAM_PROCS;
@@ -39,51 +41,63 @@ class ConnectionHandler implements HttpHandler {
       doGet(exchange);
     } else if (exchange.getRequestMethod().equals("DELETE")) {
       doDelete(exchange);
+    } else if (exchange.getRequestMethod().equals("PATCH")) {
+      doPatch(exchange);
     } else {
       doPost(exchange);
     }
   }
 
   private void doGet(HttpExchange exchange) throws IOException {
-    String path = exchange.getRequestURI().getPath().replaceFirst(
-      "/connection", "");
-    byte[] content = null;
-    String name = null;
-    String ldapUrl = null;
-    String baseDn = null;
-    String bindDn = null;
-    boolean useStartTls = false;
-    String mode = "";
-    if (!path.isEmpty()) {
-      name = path.substring(1, path.length());
-      Preferences settings = Settings.getConnectionSettings(name);
-      try {
-        if (settings.keys().length > 0) {
-          ldapUrl = settings.get(Settings.LDAP_URL_SETTING, "");
-          baseDn = settings.get(Settings.BASE_DN_SETTING, "");
-          bindDn = settings.get(Settings.BIND_DN_SETTING, "");
-          useStartTls = settings.getBoolean(
-            Settings.USE_STARTTLS_SETTING, false);
-        } 
-        if (exchange.getRequestURI().getRawQuery() != null) {
-          Map<String, List<String>> parameters = Http.queryToMap(
-            exchange.getRequestURI().getRawQuery());
-          if (parameters.containsKey("mode")) {
-            mode = parameters.get("mode").get(0);
-          }
-        }
-      } catch (BackingStoreException e) {
-        throw new RuntimeException(e);
-      } 
+    Headers h = exchange.getRequestHeaders();
+    if (h.containsKey("Accept")) {
+      List<String> accept = h.get("Accept");
+      if (accept.contains(ContentTypes.TYPES.get("json"))) {
+        doGetJson(exchange);
+      } else {
+        doGetHtml(exchange);
+      }
     } else {
-      // Might be a new connection.
-      mode = "edit";
+      doGetHtml(exchange);
     }
-    content = Pages.renderConnection(name, ldapUrl, baseDn, bindDn, 
-      useStartTls, mode).getBytes();
+  }
+
+  private void doGetHtml(HttpExchange exchange) throws IOException {
+    Http.sendResponse(exchange, HttpStatus.OK, 
+      IO.loadResourceFromClasspath("templates/connection.html"), 
+      ContentTypes.TYPES.get("html"));
+  }
+
+  private void doGetJson(HttpExchange exchange) throws IOException {
+    String path = getRequestPath(exchange);
+    byte[] content = null;
+    String contentType = ContentTypes.TYPES.get("json");
     HttpStatus status = HttpStatus.OK;
-    String contentType = ContentTypes.TYPES.get("html");
+    if (!path.isEmpty()) {
+      String name = path.substring(0, path.length());
+      Preferences connection = Settings.getConnectionSettings(name);
+      try {
+        content = Json.renderConnection(name, connection).getBytes();
+      } catch (Exception e) {
+        if (e instanceof IOException) {
+          throw (IOException) e;
+        } else {
+          throw new RuntimeException(e);
+        }
+      }
+    } else {
+      status = HttpStatus.BAD_REQUEST;
+      content = Html.renderError(status, 
+        "Connection wasn't specified in Url path!").getBytes();
+      contentType = ContentTypes.TYPES.get("html");
+    }
     Http.sendResponse(exchange, status, content, contentType);
+  }
+
+  private String getRequestPath(HttpExchange exchange) {
+  	String path = exchange.getRequestURI().getPath().replaceFirst(
+        "/connection", "").replaceFirst("/", "");
+  	return path;
   }
 
   private void doPost(HttpExchange exchange) throws IOException {
@@ -109,12 +123,14 @@ class ConnectionHandler implements HttpHandler {
       connectionSettings.get("binddn").get(0) : "";
     String password = connectionSettings.get("password") != null ?
       connectionSettings.get("password").get(0) : "";
+    
     boolean useStartTls = connectionSettings.get("usestarttls") != null ?
       Boolean.valueOf(connectionSettings.get("usestarttls").get(0)) : false;
 
     try {
       Settings.saveConnectionSettings(name, ldapUrl, 
-        baseDn, bindDn, password, useStartTls); 
+        baseDn, bindDn, password, useStartTls, AuthType.SIMPLE, 
+        ReferralPolicy.IGNORE); 
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -127,23 +143,51 @@ class ConnectionHandler implements HttpHandler {
       "/connection/" + name);
   }
 
-  private void doDelete(HttpExchange exchange) throws IOException {
-    String path = exchange.getRequestURI().getPath();
-    if (!path.endsWith(exchange.getHttpContext().getPath())) {
-      String[] pathElements = path.split("/");
-      String connectionName = pathElements[pathElements.length - 1];
-      Preferences connectionSettings = Settings.getConnectionSettings(
-        connectionName);
-      try {
-        connectionSettings.removeNode();
-        connectionSettings.flush();
-        LOGGER.info(
-          String.format("Deleted connection settings for %s", connectionName));
-      } catch (BackingStoreException e) {
+  private void doPatch(HttpExchange exchange) throws IOException {
+    String path = getRequestPath(exchange);
+    if (path.isEmpty()) {
+      HttpStatus status = HttpStatus.BAD_REQUEST;
+      byte[] content = Html.renderError(status, 
+        "Connection name not specified!").getBytes();
+      Http.sendResponse(exchange, status, content, 
+        ContentTypes.TYPES.get("html"));
+      return;
+    }
+
+    try {
+      Pike.activate(path);
+    } catch (Exception e) {
+      if (e instanceof IOException) {
+        throw (IOException) e;
+      } else {
         throw new RuntimeException(e);
       }
+    }
+    Http.sendResponse(exchange, HttpStatus.NO_CONTENT, new byte[0],
+      ContentTypes.TYPES.get("html"));
+  }
+
+  private void doDelete(HttpExchange exchange) throws IOException {
+    String path = exchange.getRequestURI().getPath();
+    String contentType = ContentTypes.TYPES.get("html");
+    if (!path.endsWith(exchange.getHttpContext().getPath())) {
+      String connectionName = getRequestPath(exchange);
+      try {
+        Pike.delete(connectionName);
+      } catch (Exception e) {
+        if (e instanceof IOException) {
+          throw (IOException) e;
+        } else {
+          throw new RuntimeException(e);
+        }
+      }
       Http.sendResponse(exchange, HttpStatus.NO_CONTENT, new byte[0],
-        ContentTypes.TYPES.get("html"));
+        contentType);
+    } else {
+      HttpStatus status = HttpStatus.BAD_REQUEST;
+      Http.sendResponse(exchange, status, 
+        Html.renderError(status, "Connection name not specified!").getBytes(),
+        contentType);
     }
   }
 }

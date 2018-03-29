@@ -14,6 +14,8 @@ import java.util.prefs.Preferences;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.omg.PortableInterceptor.ACTIVE;
+
 /**
  * Manage the settings for pike.
  * 
@@ -36,6 +38,8 @@ final class Settings {
   static final String CONNECTION_PREFS_ROOT_NODE_NAME = 
     String.format("%s/connections", PREFERENCES_ROOT_NODE_NAME);
 
+  static final String ACTIVE_CONN_NAME_SETTING = "active-connection-name";
+
   static final String BASE_DN_SETTING = "baseDn";
     
   static final String BIND_DN_SETTING = "bindDn";
@@ -46,6 +50,9 @@ final class Settings {
 
   static final String USE_STARTTLS_SETTING = "use-starttls";
 
+  static final String AUTHTYPE_SETTING = "auth-type";
+
+  static final String REFERRAL_POLICY_SETTING = "referral-policy";
 
   private Settings() {
     // Empty constructor prevents instantiation.
@@ -76,7 +83,9 @@ final class Settings {
    * @param bindDn LDAP bind DN for the user who owns the connection
    * @param password password for the bind DN
    * @param useStartTls flag to indicate that the connection needs to be made
-   *   over Start TLS.
+   *   over Start TLS
+   * @param authType indicates an authentication type
+   * @param referralPolicy indicates how to handle referrals
    * @return the Preferences object that has been saved to the backing store.
    * @throws BackingStoreException
    * @throws CertificateException
@@ -85,7 +94,8 @@ final class Settings {
    * @throws NoSuchAlgorithmException
    */
   static Preferences saveConnectionSettings(String name, String ldapUrl, 
-    String baseDn, String bindDn, String password, boolean useStartTls) 
+    String baseDn, String bindDn, String password, boolean useStartTls,
+    AuthType authType, ReferralPolicy referralPolicy) 
     throws BackingStoreException, KeyStoreException, IOException, 
     NoSuchAlgorithmException, CertificateException {
     String prefnodeName = String.format("%s/%s",  
@@ -94,19 +104,25 @@ final class Settings {
     connectionPrefs.put(LDAP_URL_SETTING, ldapUrl);
     connectionPrefs.put(BASE_DN_SETTING, baseDn);
     connectionPrefs.put(BIND_DN_SETTING, bindDn);
-    // Could be the source of any of the exceptions listed as thrown except
-    // for BackingStoreException.
-    connectionPrefs.putByteArray(PASSWORD_SETTING, secretToByteArray(bindDn, 
-      password.getBytes()));
+    if (!password.isEmpty()) {
+      // Could be the source of any of the exceptions listed as thrown except
+      // for BackingStoreException.
+      connectionPrefs.putByteArray(PASSWORD_SETTING, secretToByteArray(bindDn, 
+        password.getBytes()));
+    }
     connectionPrefs.putBoolean(USE_STARTTLS_SETTING, useStartTls);
+    connectionPrefs.put(AUTHTYPE_SETTING, authType.toString().toLowerCase());
+    connectionPrefs.put(REFERRAL_POLICY_SETTING, referralPolicy.toString().toLowerCase());
     // These 2 could throw a BackingStoreException.
     connectionPrefs.flush();
     connectionPrefs.sync();
     LOGGER.info(() -> {
       return String.format(
-        "Saved %s settings: %s=%s,%s=%s,%s=%s,%s=********,%s=%b", name, 
-        LDAP_URL_SETTING, ldapUrl, BASE_DN_SETTING, baseDn, BIND_DN_SETTING, 
-        bindDn, PASSWORD_SETTING, USE_STARTTLS_SETTING, useStartTls);
+        "Saved %s settings: %s=%s,%s=%s,%s=%s,%s=********,%s=%b,%s=%s,%s=%s",
+        name, LDAP_URL_SETTING, ldapUrl, BASE_DN_SETTING, baseDn, 
+        BIND_DN_SETTING, bindDn, PASSWORD_SETTING, USE_STARTTLS_SETTING, 
+        useStartTls, AUTHTYPE_SETTING, authType, REFERRAL_POLICY_SETTING, 
+        referralPolicy);
     });
     return connectionPrefs;
   }
@@ -144,7 +160,7 @@ final class Settings {
    * 
    * @param name the alias for the key
    * @param secretBytes the KeyStore as a byte array
-   * @return a char array of the password
+   * @return a char array of the password; empty if there is none.
    * @throws CertificateException
    * @throws IOException
    * @throws KeyStoreException
@@ -154,16 +170,18 @@ final class Settings {
   static char[] byteArrayToSecretText(String name, byte[] secretBytes) 
     throws IOException, NoSuchAlgorithmException, CertificateException,
     KeyStoreException, UnrecoverableKeyException {
-    char[] secretText = null;
+    char[] secretText = new char[0];
 
-    KeyStore ks = KeyStore.getInstance(KEYSTORE_TYPE);
-    ByteArrayInputStream bis = new ByteArrayInputStream(secretBytes);
-    ks.load(bis, PASSWORD);
-    SecretKey key = (SecretKey) ks.getKey(name, PASSWORD);
-    byte[] keybytes = key.getEncoded();
-    secretText = new char[keybytes.length];
-    for (int i = 0; i < keybytes.length; i++) {
-      secretText[i] = (char)(0x00ff & keybytes[i]);
+    if (secretBytes.length > 0) {
+      KeyStore ks = KeyStore.getInstance(KEYSTORE_TYPE);
+      ByteArrayInputStream bis = new ByteArrayInputStream(secretBytes);
+      ks.load(bis, PASSWORD);
+      SecretKey key = (SecretKey) ks.getKey(name, PASSWORD);
+      byte[] keybytes = key.getEncoded();
+      secretText = new char[keybytes.length];
+      for (int i = 0; i < keybytes.length; i++) {
+        secretText[i] = (char)(0x00ff & keybytes[i]);
+      }
     }
     return secretText;
   }
@@ -178,10 +196,33 @@ final class Settings {
     return Preferences.userRoot().node(prefnodeName);
   }
 
+  static void saveActiveConnectionName(String connectionName) 
+    throws BackingStoreException {
+    Preferences pikeRoot = Preferences.userRoot().node(PREFERENCES_ROOT_NODE_NAME);
+    pikeRoot.put(ACTIVE_CONN_NAME_SETTING, connectionName);
+    pikeRoot.flush();
+    pikeRoot.sync();
+    LOGGER.info(() -> {
+      return String.format("Saved settings %s", connectionName);
+    });
+  }
+
+  static String getActiveConnectionName() {
+    return Preferences.userRoot().node(PREFERENCES_ROOT_NODE_NAME)
+      .get(ACTIVE_CONN_NAME_SETTING, "");
+  }
+
+  static void deleteActiveConnectionName() throws BackingStoreException {
+    Preferences pikeRoot = Preferences.userRoot().node(PREFERENCES_ROOT_NODE_NAME);
+    pikeRoot.remove(ACTIVE_CONN_NAME_SETTING);
+    pikeRoot.flush();
+  }
+
   static byte[] exportConnectionSettings(String name) throws IOException,
     BackingStoreException {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    String prefnodeName = String.format("/pike/connections/%s", name);
+    String prefnodeName = String.format("%s/%s", 
+      CONNECTION_PREFS_ROOT_NODE_NAME, name);
     Preferences settings = Preferences.userRoot().node(prefnodeName);
     settings.exportNode(bos);
     LOGGER.info(() -> {
@@ -227,7 +268,8 @@ final class Settings {
       Preferences saved = null;
       try {
         saved = Settings.saveConnectionSettings(name, ldapUrl, 
-          baseDn, bindDn, password, useStartTls);
+          baseDn, bindDn, password, useStartTls, AuthType.SIMPLE, 
+          ReferralPolicy.IGNORE);
         keys = saved.keys();
         System.err.println(keys.length > 0 ? pass : fail);
       } catch (Exception e) {
