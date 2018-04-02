@@ -9,16 +9,15 @@ class StaticResourceHandler implements HttpHandler {
   public void handle(HttpExchange exchange) throws IOException {
     HttpStatus status = HttpStatus.OK;
     String path = exchange.getRequestURI().getPath();
-    String extension = getFileExtension(path);
-    String contentType = ContentTypes.TYPES.get(extension);
+    String contentType = ContentTypes.TYPES.get(getFileExtension(path));
     byte[] content = path.startsWith("/") ? IO.loadResourceFromClasspath(
       path.substring(1)) : IO.loadResourceFromClasspath(path);
     if (content.length == 0) {
       status = HttpStatus.NOT_FOUND;
       content = Html.renderError(status, String.format(
         "%s not found on this server", path)).getBytes();
+      contentType = ContentTypes.TYPES.get("html");
     }
-    contentType = ContentTypes.TYPES.get("html");
     Http.sendResponse(exchange, status, content, contentType);
   }
 
