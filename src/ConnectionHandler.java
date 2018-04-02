@@ -69,12 +69,12 @@ class ConnectionHandler implements HttpHandler {
   }
 
   private void doGetJson(HttpExchange exchange) throws IOException {
-    String path = getRequestPath(exchange);
+    String name = Http.getLastPathComponent(
+      exchange.getRequestURI().getPath());
     byte[] content = null;
     String contentType = ContentTypes.TYPES.get("json");
     HttpStatus status = HttpStatus.OK;
-    if (!path.isEmpty()) {
-      String name = path.substring(0, path.length());
+    if (!name.isEmpty()) {
       Preferences connection = Settings.getConnectionSettings(name);
       try {
         content = Json.renderConnection(name, connection).getBytes();
@@ -94,14 +94,7 @@ class ConnectionHandler implements HttpHandler {
     Http.sendResponse(exchange, status, content, contentType);
   }
 
-  private String getRequestPath(HttpExchange exchange) {
-  	String path = exchange.getRequestURI().getPath().replaceFirst(
-        "/connection", "").replaceFirst("/", "");
-  	return path;
-  }
-
   private void doPost(HttpExchange exchange) throws IOException {
-
     InputStream requestBodyStream = exchange.getRequestBody();
     Headers requestHeaders = exchange.getRequestHeaders();
     String contentType = requestHeaders.get(
@@ -142,7 +135,8 @@ class ConnectionHandler implements HttpHandler {
   }
 
   private void doPatch(HttpExchange exchange) throws IOException {
-    String path = getRequestPath(exchange);
+    String path = Http.getLastPathComponent(
+      exchange.getRequestURI().getPath());
     if (path.isEmpty()) {
       HttpStatus status = HttpStatus.BAD_REQUEST;
       byte[] content = Html.renderError(status, 
@@ -169,7 +163,8 @@ class ConnectionHandler implements HttpHandler {
     String path = exchange.getRequestURI().getPath();
     String contentType = ContentTypes.TYPES.get("html");
     if (!path.endsWith(exchange.getHttpContext().getPath())) {
-      String connectionName = getRequestPath(exchange);
+      String connectionName = Http.getLastPathComponent(
+        exchange.getRequestURI().getPath());
       try {
         Pike.delete(connectionName);
       } catch (Exception e) {

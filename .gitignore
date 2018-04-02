@@ -37,6 +37,9 @@ jsconfig.json
 # bin directory #
 bin/
 
+# tmp directory #
+tmp/
+
 # generated file listings #
 sourcefiles.*
 classfiles.*

@@ -26,7 +26,7 @@ class RecordViewHandler extends BaseLdapHandler {
     LdapContext ldapContext = getLdapContext();
     Attributes attributes = null;
     String dn = getDnFromPath(
-      getLastPathComponent(exchange.getRequestURI().getPath()));
+      Http.getLastPathComponent(exchange.getRequestURI().getPath()));
     String contentType = ContentTypes.TYPES.get("json");
     HttpStatus status = HttpStatus.OK;
     byte[] content = new byte[0];
@@ -38,11 +38,6 @@ class RecordViewHandler extends BaseLdapHandler {
       throw new RuntimeException(e);
     }
     Http.sendResponse(exchange, status, content, contentType);
-  }
-
-  private String getLastPathComponent(String uriPath) {
-    String[] pathComponents = uriPath.split("/");
-    return pathComponents[pathComponents.length - 1];
   }
 
   private String getDnFromPath(String path) {

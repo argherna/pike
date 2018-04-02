@@ -170,7 +170,8 @@ class Pike {
     System.err.println();
     System.err.println("Arguments:");
     System.err.println();
-    System.err.println("  port             port the server will listen on (default is 8080)");
+    System.err.println("  port             port the server will listen on (default is " 
+      + DEFAULT_HTTP_SERVER_PORT + ")");
     System.err.println();
     System.err.println("Options:");
     System.err.println();

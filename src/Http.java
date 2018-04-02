@@ -98,4 +98,9 @@ final class Http {
     }
     return decodedParameters;
   }
+
+  static String getLastPathComponent(String uriPath) {
+    String[] pathComponents = uriPath.split("/");
+    return pathComponents[pathComponents.length - 1];
+  }
 }

@@ -16,53 +16,40 @@ Run the jar file:
 
 Logging is based on JDK logging and output to the console by default. Press `^C` to stop the server.
 
-Arguments & options are needed to run the server. The arguments and options are similar to `ldapsearch`:
+Arguments & options can be supplied on the command line to run the server:
 
 ```
-Usage: Server [OPTIONS] [port]
+Usage: Pike [OPTIONS] [port]
 
 Serves pages of LDAP entries.
 
 Arguments:
 
-  port             port the server will listen on (default is 8080)
+  port             port the server will listen on (default is 8085)
 
 Options:
 
-  -b <searchbase>  base for searches
-  -D <bindDn>      bind DN
   -h, --help       Show this help and exit
-  -H <url>         LDAP URL
-  -w <password>    Bind password
-  -W               Prompt for password
-  -Z               Use StartTLS
 ```
 
+When the server is started, it will look for any last used connection and then use it starting you off on the search page. If none is found, you will be directed to the page with all server connections listed where you can pick one to use. If there are no saved connections, you'll be directed to a New Connection page that will let you enter connection settings for you to save, then use.
 ## Viewing Records
-
-URLs can be entered in the browser as follows:
-
-    http://localhost:[port]/dir/record/rdn;[RDN]?filter=[url-encoded filter]&attr=[attribute-name]&scope=[search scope]
-
-The URL uses [matrix parameters](https://www.w3.org/DesignIssues/MatrixURIs.html) to specify the RDN. An example path would be something like `/dir/record/rdn;ou=Users;cn=developers`.
-
 If `filter` isn't specified, the default is `(objectClass=*)`.
 
-If `attr` isn't specified, all attributes are returned. The `attr` parameter can be specified multiple times, for example: `attr=cn&attr=objectClass&attr=mail`.
-
-If `scope` isn't specified or if `scope` isn't a valid value, a subtree search is performed. Valid values of scope are `subtree`, `object`, and `onelevel`.
+If `scope` isn't specified or if `scope` isn't a valid value, a `subtree` search is performed. Valid values of scope are `subtree`, `object`, and `onelevel`.
 
 ## Philosophy
 
-This server is being built entirely with the JDK, without external dependencies. This limits what can be done quickly in terms of developer productivity, but increases user productivity in that building and running the software (which is the main goal) is shorter.
+This server is being built entirely with the JDK, without external dependencies. This limits what can be done quickly in terms of developer productivity, but increases user productivity in that building and running the software is faster (which is the main goal).
 
 ## Roadmap
 
 Desired features:
 
-* Ability to connect to different LDAP servers from 1 running instance
-* Remember certain information entered on the command line so the user doesn't have to enter it all the time
-* Configuration page to manage (locally) some connection information
+* Add authentication type and referral handling to server configuration.
+* Save searches associated with an LDAP server.
+* Add import/export of saved settings and searches.
+* Add SASL binds for server authentication.
 
 ## Etymology
 
