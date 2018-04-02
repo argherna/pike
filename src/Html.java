@@ -42,10 +42,12 @@ final class Html {
     }
   }
 
+  @Deprecated
   static String renderSearch() throws IOException {
     return renderSearch(null, null);
   }
 
+  @Deprecated
   static String renderSearch(String rawQueryString) 
     throws IOException {
     try (Formatter f = new Formatter()) {
@@ -54,11 +56,13 @@ final class Html {
     }
   }
 
+  @Deprecated
   static String renderSearch(String hostname, String authentication)
     throws IOException {
     return renderSearch(null, null, null, hostname, authentication);
   }
 
+  @Deprecated
   static String renderSearch(String rdn, String filter, String attrs, 
     String hostname, String authentication) throws IOException {
     try (Formatter f = new Formatter(startRender())) {
@@ -111,6 +115,7 @@ final class Html {
     }
   }
 
+  @Deprecated
   static String searchForm(String hostname, String authentication) 
     throws IOException {
     String searchFormTemplate = IO.loadUtf8ResourceFromClasspath(
@@ -129,7 +134,8 @@ final class Html {
     return String.format(basedocTemplate, "<title>Welcome to Pike!</title>", 
       searchForm, footer);
   }
-  
+
+  @Deprecated
   static String resultsView(String filter, 
     Map<String, Collection<StringTuple>> results, String hostname, 
     String authentication, String rdn, String attrs) throws IOException {

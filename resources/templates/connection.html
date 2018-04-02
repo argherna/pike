@@ -143,7 +143,9 @@
               if (useStartTls) {
                 $('#usestarttls').attr('checked', '');
               }
-            });
+          }).fail(function (jqXHR, exception) {
+             window.location.replace('/error/' + jqXHR.status);
+          });
         }
         if ($.urlParam('mode') === 'edit' || urlPath === 0) {
           $.editModeOn();

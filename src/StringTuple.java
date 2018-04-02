@@ -1,3 +1,4 @@
+@Deprecated
 final class StringTuple implements Comparable<StringTuple> {
 
   final String s1;

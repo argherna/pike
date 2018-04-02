@@ -154,9 +154,17 @@
                     }
                   }
                   tbl.append(tbody);
+                  if ((results.parameters.attrs && results.parameters.attrs.length > 0) || 
+                      (results.records.length > 1)) {
+                    let a = $('<a/>').attr('href', '/record;' + results.records[i].dn.replace(',', ';'))
+                      .text("View entire record").attr("style", "align:left");
+                    $('#results').append(a);
+                  }
                   $('#results').append(tbl);
                 }
               }
+        }).fail(function (jqXHR, exception) {
+          window.location.replace('/error/' + jqXHR.status);
         });
       });
         

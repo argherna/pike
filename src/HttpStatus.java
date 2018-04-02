@@ -34,4 +34,13 @@ enum HttpStatus {
   String getMessage() {
     return message;
   }
+
+  static HttpStatus getFromStatusCode(int statusCode) {
+    for (HttpStatus status : HttpStatus.values()) {
+      if (status.getStatusCode() == statusCode) {
+        return status;
+      }
+    }
+    return INTERNAL_SERVER_ERROR;
+  }
 }

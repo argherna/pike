@@ -6,24 +6,24 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Function;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.naming.Context;
+import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.SearchControls;
+import javax.naming.directory.SearchResult;
 import javax.naming.ldap.LdapContext;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
-class SearchHandler implements HttpHandler {
+class SearchHandler extends BaseLdapHandler {
 
   private static final Function<String, List<String>> ATTRS_FUNCTION =
     s -> {
@@ -46,155 +46,61 @@ class SearchHandler implements HttpHandler {
   }
 
   @Override
-  public void handle(HttpExchange exchange) throws IOException {
-    Headers headers = exchange.getRequestHeaders();
-    if (headers.containsKey("Accept")) {
-      List<String> accept = headers.get("Accept");
-      if (accept.contains(ContentTypes.TYPES.get("json"))) {
-        doJson(exchange);
-      } else {
-        doHtml(exchange);
-      }
-    } else {
-      doHtml(exchange);
-    }
-    // HttpStatus status = HttpStatus.OK;
-    // String contentType = ContentTypes.TYPES.get("html");
-    // LdapContext ldapContext = null;
-    // try {
-    //   ldapContext = Pike.getActiveLdapContext();
-    // } catch (Exception e) {
-    //   if (e instanceof IOException) {
-    //     throw (IOException) e;
-    //   } else {
-    //     throw new RuntimeException(e);
-    //   }
-    // }
-    // if (ldapContext == null) {
-    //   Http.sendResponseWithLocationNoContent(exchange, 
-    //     HttpStatus.TEMPORARY_REDIRECT, contentType, "/connections");
-    //   return;
-    // }
-    // String rawQuery = exchange.getRequestURI().getRawQuery();
-    // if (Strings.isNullOrEmpty(rawQuery)) {
-    //   content = Html.searchForm(getLdapHost(
-    //     getContextInfo(ldapContext, Context.PROVIDER_URL)), 
-    //     getContextInfo(ldapContext, Context.SECURITY_PRINCIPAL)).getBytes();
-    // } else {
-    //   Map<String, List<String>> parameters = Http.queryToMap(rawQuery, 
-    //     PARAM_PROCS);
-    //   String rdn = parameters.containsKey("rdn") ? 
-    //     parameters.get("rdn").get(0) : "";
-    //   String filter = Ldap.getFilter(parameters);
-    //   SearchControls searchControls = Ldap.getSearchControls(parameters);
-    //   Map<String, Collection<StringTuple>> results = new HashMap<>();
-    //   try {
-    //     results = ldapSession.search(rdn, filter, searchControls);
-    //     String attrsToReturn = null;
-    //     if (parameters.containsKey("attr")) {
-    //       StringJoiner attrs = new StringJoiner(" ");
-    //       for (String attr : parameters.get("attr")) {
-    //         attrs.add(attr);
-    //       }
-    //       attrsToReturn = attrs.toString();
-    //     }
-    //     content = Html.resultsView(filter, results, ldapSession.getHostname(),
-    //       ldapSession.getAuthentication(), rdn, attrsToReturn).getBytes();
-    //   } catch (NamingException e) {
-    //     throw new RuntimeException(e);
-    //   }
-    }
-
-  //   Http.sendResponse(exchange, status, content, contentType);
-  // }
-
-  private void doHtml(HttpExchange exchange) throws IOException {
-    HttpStatus status = HttpStatus.OK;
-    String contentType = ContentTypes.TYPES.get("html");
-    LdapContext ldapContext = null;
-    try {
-      ldapContext = Pike.getActiveLdapContext();
-    } catch (Exception e) {
-      if (e instanceof IOException) {
-        throw (IOException) e;
-      } else {
-        throw new RuntimeException(e);
-      }
-    }
-    if (ldapContext == null) {
-      Http.sendResponseWithLocationNoContent(exchange, 
-        HttpStatus.TEMPORARY_REDIRECT, contentType, "/connections");
-      return;
-    }
-
-    byte[] content = IO.loadResourceFromClasspath("templates/search.html");
-    Http.sendResponse(exchange, status, content, contentType);
+  String getHtmlTemplateName() {
+    return "templates/search.html";
   }
 
-  private void doJson(HttpExchange exchange) throws IOException {
+  @Override
+  void doJson(HttpExchange exchange) throws IOException {
     HttpStatus status = HttpStatus.OK;
     String contentType = ContentTypes.TYPES.get("json");
-    LdapContext ldapContext = null;
-    try {
-      ldapContext = Pike.getActiveLdapContext();
-    } catch (Exception e) {
-      if (e instanceof IOException) {
-        throw (IOException) e;
-      } else {
-        throw new RuntimeException(e);
-      }
-    }
-
-    if (ldapContext == null) {
-      Http.sendResponseWithLocationNoContent(exchange, 
-        HttpStatus.TEMPORARY_REDIRECT, contentType, "/connections");
-      return;
-    }
+    byte[] content = new byte[0];
+    LdapContext ldapContext = getLdapContext();
 
     String rdn = null;
     String filter = null;
     List<String> attrs = null;
     String scope = null;
     String rawQuery = exchange.getRequestURI().getRawQuery();
-    if (rawQuery != null && !rawQuery.isEmpty()) {
-      Map<String, List<String>> parameters = Http.queryToMap(rawQuery, 
-        PARAM_PROCS);
-      rdn = parameters.containsKey("rdn") ? parameters.get("rdn").get(0) : 
-        null;
-      filter = Ldap.getFilter(parameters);
-      attrs = parameters.get("attr");
-      scope = parameters.containsKey("scope") ? 
+    Map<String, List<String>> parameters = new HashMap<>();
+    NamingEnumeration<SearchResult> results = null;
+    try {
+      if (rawQuery != null && !rawQuery.isEmpty()) {
+        parameters = Http.queryToMap(rawQuery, PARAM_PROCS);
+        rdn = parameters.containsKey("rdn") ? parameters.get("rdn").get(0) : 
+          null;
+        filter = Ldap.getFilter(parameters);
+        attrs = parameters.get("attr");
+        scope = parameters.containsKey("scope") ? 
         (!parameters.get("scope").get(0).equals("Search Scope...") ? 
           parameters.get("scope").get(0) : "subtree") : null;
-    }
+        
+        String searchBase = getSearchBase(rdn);
+        SearchControls searchControls = Ldap.getSearchControls(parameters);
+        LOGGER.fine(String.format(
+          "Searching with: base=%s,filter=%s,controls=%s", searchBase, filter, 
+          Ldap.searchControlsToString(searchControls)));
+        results = ldapContext.search(searchBase, filter, searchControls);
+      }
 
-    try {
-
-      byte[] content = Json.renderSearch(
-        getLdapHost(getContextInfo(ldapContext, Context.PROVIDER_URL)), 
-        getContextInfo(ldapContext, Context.SECURITY_PRINCIPAL), rdn, 
-        filter, attrs, scope, null).getBytes();
+      content = Json.renderSearch(Ldap.getLdapHost(
+        Ldap.getContextInfo(ldapContext, Context.PROVIDER_URL)), 
+        Ldap.getContextInfo(ldapContext, Context.SECURITY_PRINCIPAL), rdn, 
+        filter, attrs, scope, results).getBytes();
       Http.sendResponse(exchange, status, content, contentType);
     } catch (NamingException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private String getContextInfo(LdapContext ldapContext, String envProperty) {
-    try {
-      Hashtable<?, ?> env = ldapContext.getEnvironment();
-      return (String) env.get(envProperty);
-    } catch (NamingException e) {
-      LOGGER.log(Level.INFO, String.format("Failed to get %s, returning null.",
-        envProperty), e);
-      return null;
-    }
-  }
 
-  private String getLdapHost(String ldapUrl) {
-    if (Strings.isNullOrEmpty(ldapUrl)) {
-      return "unknown";
+  private String getSearchBase(String rdn) {
+    if (Strings.isNullOrEmpty(rdn)) {
+      return Pike.getActiveBaseDn();
+    } else {
+      StringJoiner sj = new StringJoiner(",");
+      sj.add(rdn).add(Pike.getActiveBaseDn());
+      return sj.toString();
     }
-    return URI.create(ldapUrl).getHost();
   }
 }

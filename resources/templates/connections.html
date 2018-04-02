@@ -76,6 +76,8 @@
               console.log('Activated ' + conn_name);
             }
           }
+        }).fail(function (jqXHR, exception) {
+             window.location.replace('/error/' + jqXHR.status);
         });
         window.location.replace('/search');
       }

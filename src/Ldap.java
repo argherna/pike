@@ -1,11 +1,14 @@
 import java.io.IOException;
+import java.net.URI;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
 
@@ -15,6 +18,7 @@ import javax.naming.directory.SearchControls;
 import javax.naming.ldap.InitialLdapContext;
 import javax.naming.ldap.LdapContext;
 import javax.naming.ldap.StartTlsRequest;
+import javax.naming.ldap.StartTlsResponse;
 
 final class Ldap {
   
@@ -48,7 +52,9 @@ final class Ldap {
     String[] returningAttributes = null;
     if (parameters.containsKey("attr")) {
       List<String> value = parameters.get("attr");
-      returningAttributes = value.toArray(new String[value.size()]);
+      if (value != null && !value.isEmpty()) {
+        returningAttributes = value.toArray(new String[value.size()]);
+      }
     }
     return returningAttributes;
   }
@@ -72,9 +78,10 @@ final class Ldap {
     String password = new String(Settings.byteArrayToSecretText(bindDn, 
       passwordBytes));
     AuthType authType = AuthType.valueOf(
-      connection.get(Settings.AUTHTYPE_SETTING, "").toUpperCase());
+      connection.get(Settings.AUTHTYPE_SETTING, "simple").toUpperCase());
     ReferralPolicy referralPolicy = ReferralPolicy.valueOf(
-      connection.get(Settings.REFERRAL_POLICY_SETTING, "").toUpperCase());
+      connection.get(Settings.REFERRAL_POLICY_SETTING, "ignore")
+      .toUpperCase());
     boolean useStartTls = connection.getBoolean(Settings.USE_STARTTLS_SETTING,
       false);
     return createLdapContext(ldapUrl, baseDn, bindDn, password, authType, 
@@ -92,16 +99,71 @@ final class Ldap {
     LdapContext ldapContext = new InitialLdapContext(env, null);
     if (useStartTls) {
       LOGGER.config("Starting TLS session...");
-      ldapContext.extendedOperation(new StartTlsRequest());
+      StartTlsResponse tls = (StartTlsResponse) ldapContext.extendedOperation(
+        new StartTlsRequest());
+      tls.negotiate();
     }
     ldapContext.addToEnvironment(Context.SECURITY_AUTHENTICATION, 
       authType.toString().toLowerCase());
     if (authType != AuthType.NONE) {
+      LOGGER.config("Authenticating...");
       ldapContext.addToEnvironment(Context.SECURITY_PRINCIPAL, bindDn);
       ldapContext.addToEnvironment(Context.SECURITY_CREDENTIALS, password);
     }
     ldapContext.addToEnvironment(Context.REFERRAL, 
       referralPolicy.toString().toLowerCase());
+    LOGGER.config("Ldap context successfully created!");
     return ldapContext;
+  }
+
+  static String searchControlsToString(SearchControls searchControls) {
+    StringBuilder sc = new StringBuilder("SearchControls[");
+    sc.append("search scope=")
+      .append(searchScopeWords(searchControls.getSearchScope()))
+      .append(",count limit=").append(searchControls.getCountLimit())
+      .append(",deref link flag=").append(searchControls.getDerefLinkFlag())
+      .append(",returning attributes=")
+      .append(Arrays.toString(searchControls.getReturningAttributes()))
+      .append(",returning object flag=")
+      .append(searchControls.getReturningObjFlag())
+      .append(",time limit=").append(searchControls.getTimeLimit())
+      .append("]");
+    return sc.toString();
+  }
+
+  private static String searchScopeWords(int searchScope) {
+    String searchScopeWords = "UNKNOWN";
+    switch (searchScope) {
+      case 0:
+        searchScopeWords = "OBJECT";
+        break;
+      case 1: 
+        searchScopeWords = "ONELEVEL";
+        break;
+      case 2:
+        searchScopeWords = "SUBTREE";
+        break;
+      default:
+        break;
+    }
+    return searchScopeWords;
+  }
+
+  static String getContextInfo(LdapContext ldapContext, String envProperty) {
+    try {
+      Hashtable<?, ?> env = ldapContext.getEnvironment();
+      return (String) env.get(envProperty);
+    } catch (NamingException e) {
+      LOGGER.log(Level.INFO, String.format("Failed to get %s, returning null.",
+        envProperty), e);
+      return null;
+    }
+  }
+
+  static String getLdapHost(String ldapUrl) {
+    if (Strings.isNullOrEmpty(ldapUrl)) {
+      return "unknown";
+    }
+    return URI.create(ldapUrl).getHost();
   }
 }

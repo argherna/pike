@@ -4,6 +4,7 @@ import java.util.function.BiFunction;
 
 final class Strings {
 
+  @Deprecated
   private static final BiFunction<String, String, StringTuple> TO_STRINGTUPLE = (s1, s2) -> {
     return new StringTuple(s1, s2);
   };
@@ -20,6 +21,7 @@ final class Strings {
     return s == null ? "" : s;
   }
 
+  @Deprecated
   static List<StringTuple> zip(List<String> i1, List<String> i2) {
 
     List<String> shorter = i1.size() > i2.size() ? i1 : i2;

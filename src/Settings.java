@@ -14,8 +14,6 @@ import java.util.prefs.Preferences;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.omg.PortableInterceptor.ACTIVE;
-
 /**
  * Manage the settings for pike.
  * 
@@ -116,14 +114,13 @@ final class Settings {
     // These 2 could throw a BackingStoreException.
     connectionPrefs.flush();
     connectionPrefs.sync();
-    LOGGER.info(() -> {
-      return String.format(
+    LOGGER.info(() -> 
+      String.format(
         "Saved %s settings: %s=%s,%s=%s,%s=%s,%s=********,%s=%b,%s=%s,%s=%s",
         name, LDAP_URL_SETTING, ldapUrl, BASE_DN_SETTING, baseDn, 
         BIND_DN_SETTING, bindDn, PASSWORD_SETTING, USE_STARTTLS_SETTING, 
         useStartTls, AUTHTYPE_SETTING, authType, REFERRAL_POLICY_SETTING, 
-        referralPolicy);
-    });
+        referralPolicy));
     return connectionPrefs;
   }
 
@@ -202,9 +199,7 @@ final class Settings {
     pikeRoot.put(ACTIVE_CONN_NAME_SETTING, connectionName);
     pikeRoot.flush();
     pikeRoot.sync();
-    LOGGER.info(() -> {
-      return String.format("Saved settings %s", connectionName);
-    });
+    LOGGER.info(() -> String.format("Saved settings %s", connectionName));
   }
 
   static String getActiveConnectionName() {

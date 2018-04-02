@@ -15,20 +15,10 @@ class StaticResourceHandler implements HttpHandler {
       path.substring(1)) : IO.loadResourceFromClasspath(path);
     if (content.length == 0) {
       status = HttpStatus.NOT_FOUND;
-      LdapSession ldapSession = (LdapSession) exchange.getHttpContext()
-        .getAttributes().get("ldapSession");
-      // Avoid NPE by rendering the error page without LDAP session information.
-      if (ldapSession != null) {
-        content = Html.renderError(status, String.format(
-          "%s not found on this server", path), ldapSession.getHostname(),
-          ldapSession.getAuthentication()).getBytes();
-      } else {
-        content = Html.renderError(status, String.format(
-          "%s not found on this server", path)).getBytes();
-      }
-      contentType = ContentTypes.TYPES.get("html");
+      content = Html.renderError(status, String.format(
+        "%s not found on this server", path)).getBytes();
     }
-
+    contentType = ContentTypes.TYPES.get("html");
     Http.sendResponse(exchange, status, content, contentType);
   }
 

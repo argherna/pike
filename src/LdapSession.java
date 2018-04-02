@@ -25,6 +25,7 @@ import javax.naming.ldap.StartTlsRequest;
 import javax.naming.ldap.StartTlsResponse;
 import javax.net.ssl.SSLSession;
 
+@Deprecated
 class LdapSession {
 
   private static final Logger LOGGER = Logger.getLogger(

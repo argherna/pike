@@ -22,8 +22,16 @@ class InternalServerErrorFilter extends Filter {
     try {
       chain.doFilter(exchange);
     } catch (Exception e) {
+      Throwable cause = e.getCause();
+      Throwable c0 = cause;
+      while (c0 != null) {
+        c0 = cause.getCause();
+        if (c0 != null) {
+          cause = c0;
+        }
+      }
       LOGGER.log(Level.SEVERE, 
-        "Unhandled exception! Returning Internal Server Error", e);
+        "Unhandled exception! Returning Internal Server Error", cause);
       HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
       byte[] content = Html.renderError(status, 
         "An internal error occurred! Check the server logs!").getBytes();

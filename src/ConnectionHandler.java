@@ -134,10 +134,8 @@ class ConnectionHandler implements HttpHandler {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    LOGGER.fine(() -> {
-      return String.format(
-        "Settings for %1$s saved; sending to /connection/%1$s", name);
-    });
+    LOGGER.fine(() -> String.format(
+        "Settings for %1$s saved; sending to /connection/%1$s", name));
     Http.sendResponseWithLocationNoContent(exchange, HttpStatus.FOUND, 
       ContentTypes.TYPES.get("html"), 
       "/connection/" + name);

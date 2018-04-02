@@ -12,6 +12,7 @@ import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+@Deprecated
 class Server {
 
   static final String SERVER_STRING = String.format("pike/Java %s", 

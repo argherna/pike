@@ -24,7 +24,7 @@ final class Http {
     byte[] content, String contentType) throws IOException {
     Headers h = exchange.getResponseHeaders();
     h.add("Content-Type", contentType);
-    h.add("Server", Server.SERVER_STRING);
+    h.add("Server", Pike.SERVER_STRING);
     if (contentType.equals(ContentTypes.TYPES.get("json"))) {
       h.add("Access-Control-Allow-Origin", "*");
       h.add("Access-Control-Allow-Headers", "origin, content-type, accept");
@@ -52,7 +52,7 @@ final class Http {
     throws IOException {
     Headers h = exchange.getResponseHeaders();
     h.add("Content-Type", contentType);
-    h.add("Server", Server.SERVER_STRING);
+    h.add("Server", Pike.SERVER_STRING);
     h.add("Location", location);
     LOGGER.fine(() -> {
       StringBuilder headers = new StringBuilder("{");

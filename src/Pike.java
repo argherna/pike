@@ -84,9 +84,9 @@ class Pike {
       pike.addHandler("/connection", new ConnectionHandler());
       pike.addHandler("/connections", new ConnectionsHandler());
       pike.addHandler("/css", staticResourceHandler);
+      pike.addHandler("/error", new ErrorHandler());
       pike.addHandler("/js", staticResourceHandler);
-      // Disabled during development.
-      // pike.addHandler("/record", new RecordViewHandler());
+      pike.addHandler("/record", new RecordViewHandler());
       pike.addHandler("/search", searchHandler);
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
@@ -111,9 +111,9 @@ class Pike {
       ldapContexts.put(connectionName, active);
     }
     Settings.saveActiveConnectionName(connectionName);
-    LOGGER.info(() -> {
-      return String.format("%s is the active LDAP connection", connectionName);
-    });
+    LOGGER.info(() -> 
+      String.format("%s is the active LDAP connection", connectionName)
+    );
     return active;
   }
 
@@ -133,14 +133,19 @@ class Pike {
     return active;
   }
 
+  static String getActiveBaseDn() {
+    String activeConnectionName = Settings.getActiveConnectionName();
+    String activeBaseDn = Settings.getConnectionSettings(activeConnectionName)
+      .get(Settings.BASE_DN_SETTING, "");
+    return activeBaseDn;
+  }
+
   static void delete(String connectionName) throws NamingException,
     BackingStoreException {
     LdapContext toDelete = ldapContexts.remove(connectionName);
     if (toDelete != null) {
       toDelete.close();
-      LOGGER.info(() -> {
-        return String.format("Deleted %s", connectionName);
-      });
+      LOGGER.info(() -> String.format("Deleted %s", connectionName));
     }
     Preferences connection = Settings.getConnectionSettings(connectionName);
     connection.removeNode();
@@ -177,10 +182,8 @@ class Pike {
   }
 
   void addHandler(String path, HttpHandler handler) {
-    LOGGER.config(() -> {
-      return String.format("Registering %s with %s", path, 
-        handler.getClass().getSimpleName());
-    });
+    LOGGER.config(() -> String.format("Registering %s with %s", path,
+        handler.getClass().getSimpleName()));
     HttpContext context = httpServer.createContext(path);
     List<Filter> filters = context.getFilters();
     filters.add(logRequestFilter);
@@ -193,10 +196,10 @@ class Pike {
   void serveHttp() {
     LOGGER.info("Starting HTTP server...");
     for (HttpContext context : httpContexts) {
-      LOGGER.config(() -> {
-        return String.format("Server ready at http://localhost:%1$d%2$s", 
-          httpServer.getAddress().getPort(), context.getPath());
-      });
+      LOGGER.config(() -> 
+        String.format("Server ready at http://localhost:%1$d%2$s", 
+          httpServer.getAddress().getPort(), context.getPath())
+      );
     }
     httpServer.start();
   }
@@ -204,21 +207,23 @@ class Pike {
   void shutdown() {
     for (String connectionName : ldapContexts.keySet()) {
       LdapContext ldapContext = ldapContexts.get(connectionName);
-      try {
-        ldapContext.close();
-        LOGGER.info(String.format("Removed LDAP connection %s.", 
-          connectionName));
-      } catch (NamingException e) {
-        LOGGER.log(Level.WARNING, "Problem closing LdapContext on shutdown!",
-          e);
+      if (ldapContext != null) {
+        try {
+          ldapContext.close();
+          LOGGER.info(String.format("Removed LDAP connection %s.", 
+            connectionName));
+        } catch (NamingException e) {
+          LOGGER.log(Level.WARNING, "Problem closing LdapContext on shutdown!",
+            e);
+        }
       }
     }
 
-    for (HttpContext context : httpContexts) {
+    httpContexts.stream().forEach(ctx -> {
       LOGGER.info(String.format("Removing %s:%s", 
-        context.getHandler().getClass().getSimpleName(), context.getPath()));
-      httpServer.removeContext(context);
-    }
+        ctx.getHandler().getClass().getSimpleName(), ctx.getPath()));
+      httpServer.removeContext(ctx);
+    });
     LOGGER.warning("Stopping HTTP server...");
     httpServer.stop(0);
   }
