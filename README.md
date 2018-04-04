@@ -12,14 +12,14 @@ Run the build script and it'll be built:
 
 Run the jar file:
 
-    java -jar pike.jar [args]
+    java [system properties] -jar pike.jar [args]
 
-Logging is based on JDK logging and output to the console by default. Press `^C` to stop the server.
+Logging is based on JDK logging and output to the console by default. You can set the logging configuration to use by specifying the `java.util.logging.config.file` system property. Press `^C` to stop the server.
 
 Arguments & options can be supplied on the command line to run the server:
 
 ```
-Usage: Pike [OPTIONS] [port]
+Usage: Pike [port]
 
 Serves pages of LDAP entries.
 
@@ -32,11 +32,7 @@ Options:
   -h, --help       Show this help and exit
 ```
 
-When the server is started, it will look for any last used connection and then use it starting you off on the search page. If none is found, you will be directed to the page with all server connections listed where you can pick one to use. If there are no saved connections, you'll be directed to a New Connection page that will let you enter connection settings for you to save, then use.
-## Viewing Records
-If `filter` isn't specified, the default is `(objectClass=*)`.
-
-If `scope` isn't specified or if `scope` isn't a valid value, a `subtree` search is performed. Valid values of scope are `subtree`, `object`, and `onelevel`.
+You can navigate to `http://localhost:8085/` (or to whatever port you set on startup) after starting the server. It will look for any last used connection and then use it starting you off on the search page. If none is found, you will be directed to the page with all server connections listed where you can pick one to use. If there are no saved connections, you'll be directed to a New Connection page that will let you enter connection settings for you to save, then use.
 
 ## Philosophy
 
@@ -49,7 +45,8 @@ Desired features:
 * Add authentication type and referral handling to server configuration.
 * Save searches associated with an LDAP server.
 * Add import/export of saved settings and searches.
-* Add SASL binds for server authentication.
+* Add SASL for server authentication.
+* Improve error messages in the UI and logs.
 
 ## Etymology
 

@@ -54,16 +54,8 @@
     <script src="../../../js/jquery.min.js"></script>
     <script src="../../../js/popper.min.js"></script>
     <script src="../../../js/bootstrap.min.js"></script>
+    <script src="../../../js/pike.js"></script>
     <script>
-      $.urlParam = function(name) {
-        let results = new RegExp('[\?&]' + name + '=([^&#]*)')
-                        .exec(window.location.href);
-        if (results) {
-          return results[1]
-        } 
-        return 0;
-      }
-      
       $(function(){
         $.ajax({
               headers : {
@@ -156,9 +148,26 @@
                   tbl.append(tbody);
                   if ((results.parameters.attrs && results.parameters.attrs.length > 0) || 
                       (results.records.length > 1)) {
-                    let a = $('<a/>').attr('href', '/record;' + results.records[i].dn.replace(',', ';'))
-                      .text("View entire record").attr("style", "align:left");
-                    $('#results').append(a);
+                    let attrs = $.getQueryVariable('attr');
+                    let attrsQ = 0;
+                    if (attrs) {
+                      attrsQ = [];
+                      attrs.forEach(attr => {
+                        attrsQ.push('attr=' + attr);
+                      });
+                    }
+                    let a = 0;
+                    if (attrsQ) {
+                      let qstring = '?' + attrsQ.join('&');
+                      a = $('<a/>').attr('href', '/record;' + results.records[i].dn.replace(',', ';') + qstring)
+                        .text("View entire record").attr("style", "align:left");
+                    } else {
+                      a = $('<a/>').attr('href', '/record;' + results.records[i].dn.replace(',', ';'))
+                        .text("View entire record").attr("style", "align:left");
+                    }
+                    if (a) {
+                      $('#results').append(a);
+                    }
                   }
                   $('#results').append(tbl);
                 }

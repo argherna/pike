@@ -164,7 +164,7 @@ class Pike {
   }
 
   private static void showUsage() {
-    System.err.printf("Usage: %s [OPTIONS] [port]%n", Pike.class.getName());
+    System.err.printf("Usage: %s [port]%n", Pike.class.getName());
     System.err.println();
     System.err.println("Serves pages of LDAP entries.");
     System.err.println();

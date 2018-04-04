@@ -3,6 +3,7 @@ import java.util.List;
 import java.util.StringJoiner;
 import java.util.logging.Logger;
 
+import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapContext;
@@ -31,9 +32,12 @@ class RecordViewHandler extends BaseLdapHandler {
     HttpStatus status = HttpStatus.OK;
     byte[] content = new byte[0];
     try {
-      LOGGER.fine(() -> String.format("Looking up %s", dn));
+      LOGGER.fine(() -> String.format("Looking up %s...", dn));
       attributes = ldapContext.getAttributes(dn);
-      content = Json.renderRecord(dn, attributes).getBytes();
+      content = Json.renderSingleRecord(Ldap.getLdapHost(
+        Ldap.getContextInfo(ldapContext, Context.PROVIDER_URL)),
+        Ldap.getContextInfo(ldapContext, Context.SECURITY_PRINCIPAL),
+        dn, attributes).getBytes();
     } catch (NamingException e) {
       throw new RuntimeException(e);
     }
@@ -41,9 +45,8 @@ class RecordViewHandler extends BaseLdapHandler {
   }
 
   private String getDnFromPath(String path) {
-    String[] baseComponents = path.split(";");
     StringJoiner joiner = new StringJoiner(",");
-    List.of(baseComponents).stream().filter(c -> c.indexOf("=") != -1)
+    List.of(path.split(";")).stream().filter(c -> c.indexOf("=") != -1)
       .forEach(c -> joiner.add(c));
     return joiner.toString();
   }

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <link rel="stylesheet" type="text/css" href="../../../css/bootstrap.min.css">
+    <title>Record</title>
+  </head>
+  
+  <body>
+    <div class="container">
+      <h1>Record</h1>
+      <section>
+        <div id="results"></div>
+      </section>
+      <footer>
+        <p><a href="/connections">Connected</a> to <strong><span id="host"></span></strong> as <strong><span id="bindDn"></span></strong></p>
+      </footer> 
+    </div>
+    <script src="../../../js/jquery.min.js"></script>
+    <script src="../../../js/popper.min.js"></script>
+    <script src="../../../js/bootstrap.min.js"></script>
+    <script src="../../../js/pike.js"></script>
+    <script>
+      $(function () {
+        $.ajax({
+          headers: {
+            Accept: 'application/json'
+          },
+          url : window.location.href
+        }).done(function (result) {
+  
+          $('#host').text(result.connection.host);
+          $('#bindDn').text(result.connection.bindDn);
+  
+          if (result.record) {
+            document.title = 'Record - ' + result.record.dn;
+            let p0 = $('<p/>').addClass('text-muted').text(result.record.dn)
+            $('#results').append(p0);
+  
+            let p1 = $('<p/>').text('Return to ');
+            let a = $('<a/>');
+            if (document.referrer !== '') {
+              a.attr('href', document.referrer);
+            } else {
+              a.attr('href', '/search');
+            }
+            a.text('search');
+            p1.append(a).append('.');
+            $('#results').append(p1);
+  
+            let attrsArray = $.getQueryVariable('attr');
+  
+            let tbl = $("<table />").addClass('table').addClass('table-sm').addClass('table-striped');
+            let thead = $('<thead/>')
+            let hdrRow = $('<tr/>')
+            let hdr0 = $('<th/>').attr('scope', 'col').text('Attribute').addClass('text-center');
+            let hdr1 = $('<th/>').text('Value').addClass('text-center');
+            hdrRow.append(hdr0).append(hdr1);
+            thead.append(hdrRow);
+            tbl.append(thead);
+            let tbody = $('<tbody/>');
+  
+            for (let i = 0; i < result.record.attributes.length; i++) {
+              let attr = result.record.attributes[i];
+              if (attr.value instanceof Array) {
+                for (let j = 0; j < attr.value.length; j++) {
+                  let row = $('<tr/>');
+                  let rowAttrName = $('<td/>').text(attr.name).addClass('text-center');
+                  let rowAttrValue = $('<td/>').text(attr.value[j]).addClass('text-center');
+                  if (attrsArray.includes(attr.name)) {
+                    rowAttrName.addClass('font-weight-bold');
+                    rowAttrValue.addClass('font-weight-bold');
+                  }
+                  row.append(rowAttrName);
+                  row.append(rowAttrValue);
+                  tbody.append(row);
+                }
+              } else {
+                let row = $('<tr/>');
+                let rowAttrName = $('<td/>').text(attr.name).addClass('text-center');
+                let rowAttrValue = $('<td/>').text(attr.value).addClass('text-center');
+                if (attrsArray.includes(attr.name)) {
+                  rowAttrName.addClass('font-weight-bold');
+                  rowAttrValue.addClass('font-weight-bold');
+                }
+                row.append(rowAttrName);
+                row.append(rowAttrValue);
+                tbody.append(row);
+              }
+            }
+            tbl.append(tbody);
+            $('#results').append(tbl);
+          }
+        }).fail(function (jqXHR, exception) {
+          window.location.replace('/error/' + jqXHR.status);
+        });
+      });
+    </script>
+  </body>
+
+</html>

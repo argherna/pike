@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.net.URI;
+import java.rmi.Naming;
 import java.util.Formatter;
 import java.util.List;
 import java.util.StringJoiner;
@@ -75,8 +76,8 @@ final class Json {
       
     try (Formatter f = new Formatter()) {
       f.out().append('{');
-      f.format("\"connection\":{\"host\":\"%s\",\"bindDn\":\"%s\"}", hostname, 
-        bindDn);
+      f.out().append("\"connection\":")
+        .append(renderConnectionInformation(hostname, bindDn));
 
       if (!Strings.isNullOrEmpty(rdn) || !Strings.isNullOrEmpty(filter) ||
         (attrs != null && !attrs.isEmpty()) || !Strings.isNullOrEmpty(scope)) {
@@ -111,6 +112,22 @@ final class Json {
       f.out().append('}');
       return f.toString();
     }
+  }
+
+  static String renderSingleRecord(String hostname, String bindDn, String dn, 
+    Attributes attributes) throws NamingException {
+    StringBuilder singleRecord = new StringBuilder("{\"connection\":");
+    singleRecord.append(renderConnectionInformation(hostname, bindDn))
+      .append(",\"record\":").append(renderRecord(dn, attributes))
+      .append("}");
+    return singleRecord.toString();
+  }
+
+  static String renderConnectionInformation(String hostname, String bindDn) {
+    StringBuilder connInfo = new StringBuilder();
+    connInfo.append("{\"host\":\"").append(hostname).append("\",\"bindDn\":\"")
+      .append(bindDn).append("\"}");
+    return connInfo.toString();
   }
 
   static String renderRecord(String dn, Attributes attributes) 
