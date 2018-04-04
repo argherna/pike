@@ -177,6 +177,7 @@ final class Json {
       logCharTypes(v);
       char[] decoded = new char[v.length];
       for (int i = 0; i < v.length; i++) {
+        logCharType(v[i]);
         decoded[i] = toPrintable(v[i]);
       }
       buffer.append(decoded);
@@ -185,107 +186,107 @@ final class Json {
     }
   }
 
-  private static void logCharTypes(char[] value) {
+  private static void logCharType(char value) {
+    // Attribute values aren't always JSON-friendly. When things go wrong,
+    // set the LOGGER to FINEST and run the query again looking at the output
+    // from this method. Update #toPrintable(char) as appropriate.
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder types = new StringBuilder();
-      for (char c : value) {
-        int charType = Character.getType(c);
-        String charTypeName = "UNKNOWN";
-        switch (charType) {
-          case 0:
-            charTypeName = "Character.UNASSIGNED";
-            break;
-          case 1:
-            charTypeName = "Character.UPPERCASE_LETTER";
-            break;
-          case 2:
-            charTypeName = "Character.LOWERCASE_LETTER";
-            break;
-          case 3:
-            charTypeName = "Character.TITLECASE_LETTER";
-            break;
-          case 4:
-            charTypeName = "Character.MODIFIER_LETTER";
-            break;
-          case 5:
-            charTypeName = "Character.OTHER_LETTER";
-            break;
-          case 6:
-            charTypeName = "Character.NON_SPACING_MARK";
-            break;
-          case 7:
-            charTypeName = "Character.ENCLOSING_MARK";
-            break;
-          case 8:
-            charTypeName = "Character.COMBINING_SPACING_MARK";
-            break;
-          case 9:
-            charTypeName = "Character.DECIMAL_DIGIT_NUMBER";
-            break;
-          case 10:
-            charTypeName = "Character.LETTER_NUMBER";
-            break;
-          case 11:
-            charTypeName = "Character.OTHER_NUMBER";
-            break;
-          case 12:
-            charTypeName = "Character.SPACE_SEPARATOR";
-            break;
-          case 13:
-            charTypeName = "Character.LINE_SEPARATOR";
-            break;
-          case 14:
-            charTypeName = "Character.PARAGRAPH_SEPARATOR";
-            break;
-          case 15:
-            charTypeName = "Character.CONTROL";
-            break;
-          case 16:
-            charTypeName = "Character.FORMAT";
-            break;
-          case 18:
-            charTypeName = "Character.PRIVATE_USE";
-            break;
-          case 19:
-            charTypeName = "Character.SURROGATE";
-            break;
-          case 20:
-            charTypeName = "Character.DASH_PUNCTUATION";
-            break;
-          case 21:
-            charTypeName = "Character.START_PUNCTUATION";
-            break;
-          case 22:
-            charTypeName = "Character.END_PUNCTUATION";
-            break;
-          case 23:
-            charTypeName = "Character.CONNECTOR_PUNCTUATION";
-            break;
-          case 24:
-            charTypeName = "Character.OTHER_PUNCTUATION";
-            break;
-          case 25:
-            charTypeName = "Character.MATH_SYMBOL";
-            break;
-          case 26:
-            charTypeName = "Character.CURRENCY_SYMBOL";
-            break;
-          case 27:
-            charTypeName = "Character.MODIFIER_SYMBOL";
-            break;
-          case 28:
-            charTypeName = "Character.OTHER_SYMBOL";
-            break;
-          case 29:
-            charTypeName = "Character.INITIAL_QUOTE_PUNCTUATION";
-            break;
-          case 30:
-            charTypeName = "Character.FINAL_QUOTE_PUNCTUATION";
-            break;
-        }
-        types.append(c).append(": ").append(charTypeName)
-          .append(System.getProperty("line.separator"));
+      int charType = Character.getType(value);
+      String charTypeName = "UNKNOWN";
+      switch (charType) {
+        case 0:
+          charTypeName = "Character.UNASSIGNED";
+          break;
+        case 1:
+          charTypeName = "Character.UPPERCASE_LETTER";
+          break;
+        case 2:
+          charTypeName = "Character.LOWERCASE_LETTER";
+          break;
+        case 3:
+          charTypeName = "Character.TITLECASE_LETTER";
+          break;
+        case 4:
+          charTypeName = "Character.MODIFIER_LETTER";
+          break;
+        case 5:
+          charTypeName = "Character.OTHER_LETTER";
+          break;
+        case 6:
+          charTypeName = "Character.NON_SPACING_MARK";
+          break;
+        case 7:
+          charTypeName = "Character.ENCLOSING_MARK";
+          break;
+        case 8:
+          charTypeName = "Character.COMBINING_SPACING_MARK";
+          break;
+        case 9:
+          charTypeName = "Character.DECIMAL_DIGIT_NUMBER";
+          break;
+        case 10:
+          charTypeName = "Character.LETTER_NUMBER";
+          break;
+        case 11:
+          charTypeName = "Character.OTHER_NUMBER";
+          break;
+        case 12:
+          charTypeName = "Character.SPACE_SEPARATOR";
+          break;
+        case 13:
+          charTypeName = "Character.LINE_SEPARATOR";
+          break;
+        case 14:
+          charTypeName = "Character.PARAGRAPH_SEPARATOR";
+          break;
+        case 15:
+          charTypeName = "Character.CONTROL";
+          break;
+        case 16:
+          charTypeName = "Character.FORMAT";
+          break;
+        case 18:
+          charTypeName = "Character.PRIVATE_USE";
+          break;
+        case 19:
+          charTypeName = "Character.SURROGATE";
+          break;
+        case 20:
+          charTypeName = "Character.DASH_PUNCTUATION";
+          break;
+        case 21:
+          charTypeName = "Character.START_PUNCTUATION";
+          break;
+        case 22:
+          charTypeName = "Character.END_PUNCTUATION";
+          break;
+        case 23:
+          charTypeName = "Character.CONNECTOR_PUNCTUATION";
+          break;
+        case 24:
+          charTypeName = "Character.OTHER_PUNCTUATION";
+          break;
+        case 25:
+          charTypeName = "Character.MATH_SYMBOL";
+          break;
+        case 26:
+          charTypeName = "Character.CURRENCY_SYMBOL";
+          break;
+        case 27:
+          charTypeName = "Character.MODIFIER_SYMBOL";
+          break;
+        case 28:
+          charTypeName = "Character.OTHER_SYMBOL";
+          break;
+        case 29:
+          charTypeName = "Character.INITIAL_QUOTE_PUNCTUATION";
+          break;
+        case 30:
+          charTypeName = "Character.FINAL_QUOTE_PUNCTUATION";
+          break;
       }
+      types.append(c).append(": ").append(charTypeName);
       LOGGER.finest(types.toString());
     }
   }
