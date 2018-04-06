@@ -95,6 +95,7 @@ class ConnectionHandler implements HttpHandler {
   }
 
   private void doPost(HttpExchange exchange) throws IOException {
+
     InputStream requestBodyStream = exchange.getRequestBody();
     Headers requestHeaders = exchange.getRequestHeaders();
     String contentType = requestHeaders.get(
@@ -112,19 +113,56 @@ class ConnectionHandler implements HttpHandler {
       connectionSettings.get("ldapurl").get(0) : "";
     String baseDn = connectionSettings.get("basedn") != null ?
       connectionSettings.get("basedn").get(0) : "";
+    String authType = connectionSettings.get("authtype") != null ?
+      connectionSettings.get("authtype").get(0) : "";
     String bindDn = connectionSettings.get("binddn") != null ?
       connectionSettings.get("binddn").get(0) : "";
     String password = connectionSettings.get("password") != null ?
       connectionSettings.get("password").get(0) : "";
+    String referralPolicy = connectionSettings.get("referralpolicy") != null ?
+      connectionSettings.get("referralpolicy").get(0) : "";
     
     boolean useStartTls = connectionSettings.get("usestarttls") != null ?
       Boolean.valueOf(connectionSettings.get("usestarttls").get(0)) : false;
 
     try {
-      Settings.saveConnectionSettings(name, ldapUrl, 
-        baseDn, bindDn, password, useStartTls, AuthType.SIMPLE, 
-        ReferralPolicy.IGNORE); 
+      String prefnode = String.format("%s/%s",  
+        Settings.CONNECTION_PREFS_ROOT_NODE_NAME, name);
+      Preferences connectionPrefs = Preferences.userRoot().node(prefnode);
+      connectionPrefs.put(Settings.LDAP_URL_SETTING, ldapUrl);
+      connectionPrefs.put(Settings.BASE_DN_SETTING, baseDn);
+      connectionPrefs.put(Settings.BIND_DN_SETTING, bindDn);
+      if (!password.isEmpty()) {
+        // Settings#secretToByteArray could throw some wacky security
+        // exceptions. 
+        connectionPrefs.putByteArray(Settings.PASSWORD_SETTING, 
+          Settings.secretToByteArray(bindDn, password.getBytes()));
+      }
+      connectionPrefs.putBoolean(Settings.USE_STARTTLS_SETTING, 
+        useStartTls);
+      connectionPrefs.put(Settings.AUTHTYPE_SETTING, authType);
+      connectionPrefs.put(Settings.REFERRAL_POLICY_SETTING, referralPolicy);
+      // These 2 could throw a BackingStoreException.
+      connectionPrefs.flush();
+      connectionPrefs.sync();
+      LOGGER.info(() -> 
+        String.format(
+          "Saved %s settings: %s=%s,%s=%s,%s=%s,%s=********,%s=%b,%s=%s,%s=%s",
+          name, Settings.LDAP_URL_SETTING, ldapUrl, Settings.BASE_DN_SETTING, 
+          baseDn, Settings.BIND_DN_SETTING, bindDn, Settings.PASSWORD_SETTING, 
+          Settings.USE_STARTTLS_SETTING, useStartTls, Settings.AUTHTYPE_SETTING, 
+          authType, Settings.REFERRAL_POLICY_SETTING, referralPolicy));
+      
+      // Settings.saveConnectionSettings(name, ldapUrl, 
+      //   baseDn, bindDn, password, useStartTls, AuthType.SIMPLE, 
+      //   ReferralPolicy.IGNORE); 
     } catch (Exception e) {
+      if (e instanceof IOException) {
+        throw (IOException) e;
+      }
+      if (e instanceof RuntimeException) {
+        throw (RuntimeException) e;
+      }
       throw new RuntimeException(e);
     }
     LOGGER.fine(() -> String.format(

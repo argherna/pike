@@ -32,6 +32,7 @@
                 <label for="basedn" class="form-control-label">Base DN:</label>
                 <input class="form-control" type="text" placeholder="dc=example,dc=com" id="basedn" name="basedn">
               </div>
+              <input class="form-control" type="hidden" id="authtype" name="authtype" value="simple">
               <div class="form-group">
                 <label for="binddn" class="form-control-label">Bind DN:</label>
                 <input class="form-control" type="text" placeholder="cn=ldap-user,ou=Users,dc=example,dc=com" id="binddn" name="binddn">
@@ -52,6 +53,7 @@
                 </div>
               </div>
             </fieldset>
+            <input class="form-control" type="hidden" id="referralpolicy" name="referralpolicy" value="ignore">
             <div class="float-right">
               <a id="return" href="/connections" class="btn btn-light">Return to Connections List</a>
             </div>

@@ -110,7 +110,11 @@ class Pike {
       active = Ldap.createLdapContext(connectionName);
       ldapContexts.put(connectionName, active);
     }
-    Settings.saveActiveConnectionName(connectionName);
+    Preferences pikeRoot = Preferences.userRoot()
+      .node(Settings.PREFERENCES_ROOT_NODE_NAME);
+    pikeRoot.put(Settings.ACTIVE_CONN_NAME_SETTING, connectionName);
+    pikeRoot.flush();
+    pikeRoot.sync();
     LOGGER.info(() -> 
       String.format("%s is the active LDAP connection", connectionName)
     );
@@ -154,7 +158,9 @@ class Pike {
       String.format("Deleted connection settings for %s", connectionName));
     String activeConnectionName = Settings.getActiveConnectionName();
     if (activeConnectionName.equals(connectionName)) {
-      Settings.deleteActiveConnectionName();
+      Preferences pikeRoot = Preferences.userRoot().node(PREFERENCES_ROOT_NODE_NAME);
+      pikeRoot.remove(ACTIVE_CONN_NAME_SETTING);
+      pikeRoot.flush();
     }
   }
 
