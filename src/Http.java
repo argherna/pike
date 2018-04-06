@@ -7,27 +7,45 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.logging.Logger;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 
 final class Http {
 
-  private static final Logger LOGGER = Logger.getLogger(Http.class.getName());
-
   private Http() {
     // Empty constructor prevents instantiation.
   }
 
+  static void sendResponseWithLocationNoContent(HttpExchange exchange, 
+    HttpStatus status, String contentType, String location) 
+    throws IOException {
+    Map<String, List<String>> responseHeaders = new HashMap<>();
+    addServerHeaders(responseHeaders, Pike.SERVER_STRING);
+    addContentTypeResponseHeaders(responseHeaders, contentType);
+    responseHeaders.put("Location", List.of(location));
+    sendResponse(exchange, status, new byte[0], responseHeaders);
+  }
+
   static void sendResponse(HttpExchange exchange, HttpStatus status, 
     byte[] content, String contentType) throws IOException {
+    Map<String, List<String>> responseHeaders = new HashMap<>();
+    addServerHeaders(responseHeaders, Pike.SERVER_STRING);
+    addContentTypeResponseHeaders(responseHeaders, contentType);
+    sendResponse(exchange, status, content, responseHeaders);
+  }
+
+  static void sendResponse(HttpExchange exchange, HttpStatus status, 
+    byte[] content, Map<String, List<String>> responseHeaders) 
+    throws IOException {
     Headers h = exchange.getResponseHeaders();
-    h.add("Content-Type", contentType);
-    h.add("Server", Pike.SERVER_STRING);
-    if (contentType.equals(ContentTypes.TYPES.get("json"))) {
-      h.add("Access-Control-Allow-Origin", "*");
-      h.add("Access-Control-Allow-Headers", "origin, content-type, accept");
+    if (responseHeaders != null) {
+      for (String headerName : responseHeaders.keySet()) {
+        List<String> values = responseHeaders.get(headerName);
+        for (String value : values) {
+          h.add(headerName, value);
+        }
+      }
     }
 
     // Avoid NPE when writing response by setting content length to -1 when
@@ -38,33 +56,30 @@ final class Http {
     exchange.sendResponseHeaders(status.getStatusCode(), length);
 
     if (content.length > 0) {
-      OutputStream out = exchange.getResponseBody();
-      out.write(content);
-      out.flush();
-      out.close();
+      try (OutputStream out = exchange.getResponseBody()) {
+        out.write(content);
+        out.flush();
+      } 
     }
 
     exchange.close();    
   }
 
-  static void sendResponseWithLocationNoContent(HttpExchange exchange, 
-    HttpStatus status, String contentType, String location) 
-    throws IOException {
-    Headers h = exchange.getResponseHeaders();
-    h.add("Content-Type", contentType);
-    h.add("Server", Pike.SERVER_STRING);
-    h.add("Location", location);
-    LOGGER.fine(() -> {
-      StringBuilder headers = new StringBuilder("{");
-      for (String header : h.keySet()) {
-        headers.append(header).append(": ").append(h.get(header).toString())
-          .append(",");
-      }
-      headers.append("}");
-      return String.format("Response headers %s", headers.toString());
-    });
-    exchange.sendResponseHeaders(status.getStatusCode(), -1);
-    exchange.close();
+  static void addContentTypeResponseHeaders(
+    Map<String, List<String>> responseHeaders, String contentType) {
+    responseHeaders.put("Content-Type", List.of(contentType));
+
+    // CORS headers (see https://www.w3.org/TR/cors/)
+    if (contentType.equals(ContentTypes.TYPES.get("json"))) {
+      responseHeaders.put("Access-Control-Allow-Origin", List.of("*"));
+      responseHeaders.put("Access-Control-Allow-Headers", 
+        List.of("origin, content-type, accept"));
+    }
+  }
+
+  static void addServerHeaders(Map<String, List<String>> responseHeaders,
+    String server) {
+    responseHeaders.put("Server", List.of(server));
   }
 
   static Map<String, List<String>> queryToMap(String rawQuery) {

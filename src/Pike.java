@@ -33,13 +33,6 @@ class Pike {
 
   private static final Map<String, LdapContext> ldapContexts = new HashMap<>();
 
-  private final Filter faviconFilter = new FaviconFilter();
-
-  private final Filter internalServerErrorFilter = 
-    new InternalServerErrorFilter();
-
-  private final Filter logRequestFilter = new LogRequestFilter();
-
   private final HttpServer httpServer;
 
   private final Set<HttpContext> httpContexts = new HashSet<>();
@@ -80,14 +73,31 @@ class Pike {
       final Pike pike = new Pike(port);
       HttpHandler searchHandler = new SearchHandler();
       HttpHandler staticResourceHandler = new StaticResourceHandler();
-      pike.addHandler("/", searchHandler);
-      pike.addHandler("/connection", new ConnectionHandler());
-      pike.addHandler("/connections", new ConnectionsHandler());
-      pike.addHandler("/css", staticResourceHandler);
-      pike.addHandler("/error", new ErrorHandler());
-      pike.addHandler("/js", staticResourceHandler);
-      pike.addHandler("/record", new RecordViewHandler());
-      pike.addHandler("/search", searchHandler);
+      
+      Filter faviconFilter = new FaviconFilter();
+      Filter internalServerErrorFilter = new InternalServerErrorFilter();
+      Filter jsonInFilter = new JsonInFilter();
+      Filter logRequestFilter = new LogRequestFilter();
+
+      pike.addHandler("/", searchHandler, 
+        List.of(logRequestFilter, faviconFilter, internalServerErrorFilter));
+      pike.addHandler("/connection", new ConnectionHandler(),
+        List.of(logRequestFilter, faviconFilter, internalServerErrorFilter));
+      pike.addHandler("/connections", new ConnectionsHandler(),
+        List.of(logRequestFilter, faviconFilter, internalServerErrorFilter));
+      pike.addHandler("/css", staticResourceHandler,
+        List.of(logRequestFilter, faviconFilter, internalServerErrorFilter));
+      pike.addHandler("/error", new ErrorHandler(),
+        List.of(logRequestFilter, faviconFilter, internalServerErrorFilter));
+      pike.addHandler("/js", staticResourceHandler,
+        List.of(logRequestFilter, faviconFilter, internalServerErrorFilter));
+      pike.addHandler("/record", new RecordViewHandler(),
+        List.of(logRequestFilter, faviconFilter, internalServerErrorFilter));
+      pike.addHandler("/search", searchHandler,
+        List.of(logRequestFilter, faviconFilter, internalServerErrorFilter));
+      pike.addHandler("/searches", new SearchesHandler(),
+        List.of(logRequestFilter, faviconFilter, jsonInFilter, 
+          internalServerErrorFilter));
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
@@ -110,8 +120,12 @@ class Pike {
       active = Ldap.createLdapContext(connectionName);
       ldapContexts.put(connectionName, active);
     }
-    Settings.saveActiveConnectionName(connectionName);
-    LOGGER.info(() -> 
+    Preferences pikeRoot = Preferences.userRoot()
+      .node(Settings.PREFERENCES_ROOT_NODE_NAME);
+    pikeRoot.put(Settings.ACTIVE_CONN_NAME_SETTING, connectionName);
+    pikeRoot.flush();
+    pikeRoot.sync();
+    LOGGER.fine(() -> 
       String.format("%s is the active LDAP connection", connectionName)
     );
     return active;
@@ -154,7 +168,10 @@ class Pike {
       String.format("Deleted connection settings for %s", connectionName));
     String activeConnectionName = Settings.getActiveConnectionName();
     if (activeConnectionName.equals(connectionName)) {
-      Settings.deleteActiveConnectionName();
+      Preferences pikeRoot = Preferences.userRoot()
+        .node(Settings.PREFERENCES_ROOT_NODE_NAME);
+      pikeRoot.remove(Settings.ACTIVE_CONN_NAME_SETTING);
+      pikeRoot.flush();
     }
   }
 
@@ -182,14 +199,12 @@ class Pike {
     httpServer = HttpServer.create(new InetSocketAddress(port), 0);
   }
 
-  void addHandler(String path, HttpHandler handler) {
+  void addHandler(String path, HttpHandler handler, List<Filter> filters) {
     LOGGER.config(() -> String.format("Registering %s with %s", path,
         handler.getClass().getSimpleName()));
     HttpContext context = httpServer.createContext(path);
-    List<Filter> filters = context.getFilters();
-    filters.add(logRequestFilter);
-    filters.add(faviconFilter);
-    filters.add(internalServerErrorFilter);
+    List<Filter> contextFilters = context.getFilters();
+    contextFilters.addAll(filters);
     context.setHandler(handler);
     httpContexts.add(context);
   }

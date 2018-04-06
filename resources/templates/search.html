@@ -1,193 +1,414 @@
-
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <link rel="stylesheet" type="text/css" href="../../../css/bootstrap.min.css">
-    <title>Search LDAP</title>
-  </head>
-  <body>
-    <div class="container">
-      <section>
-        <h1 id="searchFormHeader">Search</h1>
-        <p class="text-muted">Enter search criteria for each field as needed.</p>
-        <form id="search" action="search" method="GET" enctype="application/x-www-form-urlencoded">
-          <div class="form-group">
-            <label for="rdn" class="form-control-label sr-only">RDN</label>
-            <input class="form-control" type="text" placeholder="RDN (e.g. ou=Users)" id="rdn" name="rdn"  />
-          </div>
-          <div class="form-group">
-            <label for="filter" class="form-control-label sr-only">Filter</label>
-            <textarea class="form-control" type="textarea" rows="4" placeholder="filter (e.g. (cn=foo))" id="filter" name="filter"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="attr" class="form-control-label sr-only">Attributes to Return</label>
-            <input class="form-control" type="text" placeholder="attributes to return (e.g. cn mail objectClass)" id="attr" name="attr"  />
-          </div>
-          <div class="form-group">
-            <label for="scope" class="form-control-label sr-only">Search Scope</label>
-            <select class="form-control" id="scope" name="scope">
-              <option value="" disabled selected>Search Scope...</option>
-              <option value="subtree">subtree</option>
-              <option value="object">object</option>
-              <option value="onelevel">onelevel</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <span class="input-group-btn">
-              <input class="btn btn-primary" type="submit" value="Search"/>
-              <input class="btn btn-light" type="reset" id="clear" value="Clear"/>
-            </span>
-          </div>
-        </form>
-      </section>
-      <section>
-        <div id="results"></div>
-      </section>
-      <footer>
-        <p><a href="/connections">Connected</a> to <strong><span id="host"></span></strong> as <strong><span id="bindDn"></span></strong></p>
-      </footer>
-    </div>
-    <script src="../../../js/jquery.min.js"></script>
-    <script src="../../../js/popper.min.js"></script>
-    <script src="../../../js/bootstrap.min.js"></script>
-    <script src="../../../js/pike.js"></script>
-    <script>
-      $(function(){
-        $.ajax({
-              headers : {
-                Accept: 'application/json'
-              },
-              url : '/search' + location.search
-            }).done(function(results) {
 
-              $('#host').text(results.connection.host);
-              $('#bindDn').text(results.connection.bindDn);
-              
-              if (results.parameters) {
-                $('#rdn').attr('value', results.parameters.rdn);
-                $('#filter').text(results.parameters.filter);
-                let attrValue = '';
-                if (results.parameters.attrs) {
-                  results.parameters.attrs.forEach(element => {
-                    attrValue = attrValue + element + ' ';
-                  });
-                  if (attrValue) {
-                    $('#attr').attr('value', attrValue.trim());
-                  }
-                }
-                let selection = 0;
-                if (results.parameters.searchScope === 'subtree') {
-                  selection = 1;
-                } else if (results.parameters.searchScope === 'object') {
-                  selection = 2;
-                } else if (results.parameters.searchScope === 'onelevel') {
-                  selection = 3
-                }
-                
-                if (selection) {
-                  $('select>option:eq(' + selection + ')').attr('selected', 'true');
-                }
-  
-                if (results.parameters.filter) {
-                  let hdrText = 'Results from ' + results.parameters.filter;
-                  let h1 = $('<h1/>').attr('id', 'resultTitle').text(hdrText);
-                  $('#results').append(h1);
-                  let subTitleText = '';
-                  if (!results.records || results.records.length === 0) {
-                    subTitleText = 'No records matched the given criteria.';
-                  } else if (results.records.length === 1) {
-                    subTitleText = 'Found 1 record.';
-                  } else {
-                    subTitleText = 'Found ' + results.records.length + ' records.';
-                  }
-                  let p = $('<p/>').attr('id', 'resultText').addClass('text-muted').text(subTitleText);
-                  $('#results').append(p);
-                  document.title = hdrText + ': ' + subTitleText;
-                }
-              }
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <link rel="stylesheet" type="text/css" href="../../../css/bootstrap.min.css">
+  <title>Search LDAP</title>
+</head>
 
-              // A table for each record
-              if (results.records) {
-                for (let i = 0; i < results.records.length; i++) {
-                  let tbl = $("<table />").addClass('table').addClass('table-sm').addClass('table-striped');
-                  let caption = $('<caption/>').text(results.records[i].dn);
-                  tbl.append(caption);
-                  let thead = $('<thead/>')
-                  let hdrRow = $('<tr/>')
-                  let hdr0 = $('<th/>').attr('scope', 'col').text('Attribute');
-                  let hdr1 = $('<th/>').text('Value');
-                  hdrRow.append(hdr0).append(hdr1);
-                  thead.append(hdrRow);
-                  tbl.append(thead);
-                  let tbody = $('<tbody/>');
-                  
-                  for (let j = 0; j < results.records[i].attributes.length; j++) {
-                    let attr = results.records[i].attributes[j];
-                    if (attr.value instanceof Array) {
-                      for (let k = 0; k < attr.value.length; k++) {
-                        let row = $('<tr/>');
-                        let rowAttrName = $('<td/>').text(attr.name);
-                        let rowAttrValue = $('<td/>').text(attr.value[k]);
-                        row.append(rowAttrName);
-                        row.append(rowAttrValue);
-                        tbody.append(row);
-                      }
-                    } else {
-                      let row = $('<tr/>');
-                      let rowAttrName = $('<td/>').text(attr.name);
-                      let rowAttrValue = $('<td/>').text(attr.value);
-                      row.append(rowAttrName);
-                      row.append(rowAttrValue);
-                      tbody.append(row);
-                    }
-                  }
-                  tbl.append(tbody);
-                  if ((results.parameters.attrs && results.parameters.attrs.length > 0) || 
-                      (results.records.length > 1)) {
-                    let attrs = $.getQueryVariable('attr');
-                    let attrsQ = 0;
-                    if (attrs) {
-                      attrsQ = [];
-                      attrs.forEach(attr => {
-                        attrsQ.push('attr=' + attr);
-                      });
-                    }
-                    let a = 0;
-                    if (attrsQ) {
-                      let qstring = '?' + attrsQ.join('&');
-                      a = $('<a/>').attr('href', '/record;' + results.records[i].dn.replace(',', ';') + qstring)
-                        .text("View entire record").attr("style", "align:left");
-                    } else {
-                      a = $('<a/>').attr('href', '/record;' + results.records[i].dn.replace(',', ';'))
-                        .text("View entire record").attr("style", "align:left");
-                    }
-                    if (a) {
-                      $('#results').append(a);
-                    }
-                  }
-                  $('#results').append(tbl);
-                }
-              }
-        }).fail(function (jqXHR, exception) {
-          window.location.replace('/error/' + jqXHR.status);
+<body>
+  <div class="container">
+    <section>
+      <h1 id="searchFormHeader">Search</h1>
+      <p class="text-muted">Enter search criteria for each field as needed.</p>
+      <form id="search" action="search" method="GET" enctype="application/x-www-form-urlencoded">
+        <div class="form-group">
+          <label for="rdn" class="form-control-label sr-only">RDN</label>
+          <input class="form-control" type="text" placeholder="RDN (e.g. ou=Users)" id="rdn" name="rdn" />
+        </div>
+        <div class="form-group">
+          <label for="filter" class="form-control-label sr-only">Filter</label>
+          <textarea class="form-control" type="textarea" rows="4" placeholder="filter (e.g. (cn=foo))" id="filter" name="filter"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="attr" class="form-control-label sr-only">Attributes to Return</label>
+          <input class="form-control" type="text" placeholder="attributes to return (e.g. cn mail objectClass)" id="attr" name="attr"
+          />
+        </div>
+        <div class="form-group">
+          <label for="scope" class="form-control-label sr-only">Search Scope</label>
+          <select class="form-control" id="scope" name="scope">
+            <option value="" disabled selected>Search Scope...</option>
+            <option value="subtree">subtree (default)</option>
+            <option value="object">object</option>
+            <option value="onelevel">onelevel</option>
+          </select>
+        </div>
+        <div class="float-right">
+          <div class="dropdown">
+            <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true"
+              aria-expanded="false">
+              Searches
+            </button>
+            <div id="savedSearches" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            </div>
+          </div>
+        </div>
+        <div class="float-right">
+          <button class="btn btn-light" type="button" id="save" data-toggle="modal" data-target="#saveSearchAs">
+            Save Search
+          </button>
+        </div>
+        <div class="float-right">
+          <button class="btn btn-light" type="button" id="update">
+            Update Current Search
+          </button>
+        </div>
+        <div class="float-right">
+          <button class="btn btn-light" type="button" id="delete">
+            Delete Search
+          </button>
+        </div>
+        <div class="form-group">
+          <span class="input-group-btn">
+            <input class="btn btn-primary" type="submit" value="Search" />
+            <input class="btn btn-light" type="reset" id="clear" value="Clear" />
+          </span>
+        </div>
+        <div class="modal fade" id="saveSearchAs" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="saveSearchAsTitle">Save Search As:</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <label for="searchName" class="form-control-label sr-only">Save Search As:</label>
+                <input class="form-control" type="text" placeholder="saved-search-name" id="searchName" name="searchName" />
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="doSave">Save changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </section>
+    <section>
+      <div id="results"></div>
+    </section>
+    <footer>
+      <p>
+        <a href="/connections">Connected</a> to
+        <strong>
+          <span id="host"></span>
+        </strong> as
+        <strong>
+          <span id="bindDn"></span>
+        </strong>
+      </p>
+    </footer>
+  </div>
+  <script src="../../../js/jquery.min.js"></script>
+  <script src="../../../js/popper.min.js"></script>
+  <script src="../../../js/bootstrap.min.js"></script>
+  <script src="../../../js/pike.js"></script>
+  <script>
+
+    var currentSavedSearch = 0;
+
+    $.toggleSaveState = function () {
+      let len = $('#rdn').val().length +
+        $('#filter').val().length + $('#attr').val().length +
+        $('#scope')[0].selectedIndex;
+      if (len > 0) {
+        $('#save').removeAttr('disabled');
+      } else {
+        $('#save').attr('disabled', '');
+      }
+    }
+
+    $.resetForm = function () {
+      $('#rdn').removeAttr('value');
+      $('#filter').text('');
+      $('#attr').removeAttr('value');
+      $('select>option:eq(0)').attr('selected', '');
+      $('select>option:eq(1)').removeAttr('selected');
+      $('select>option:eq(2)').removeAttr('selected');
+      $('select>option:eq(3)').removeAttr('selected');
+      $('#results').contents().remove();
+      $('#delete').attr('disabled', '');
+      $('#update').attr('disabled', '');
+      $('#save').attr('disabled', '');
+      currentSavedSearch = 0;
+      document.title = 'Search LDAP';
+    }
+
+    $.reloadAllSavedSearches = function () {
+      $('#savedSearches').contents().remove();
+      $.loadAllSavedSearches();
+    }
+
+    $.loadAllSavedSearches = function () {
+      $.ajax({
+        headers: {
+          Accept: 'application/json'
+        },
+        url: '/searches'
+      }).done(function (searches) {
+        let i = 0;
+        searches.forEach(search => {
+          let a = $('<a/>').attr('id', 'ss' + i++)
+            .attr('href', 'javascript:$.loadSavedSearch(\'' + search + '\')')
+            .addClass('dropdown-item').text(search);
+          $('#savedSearches').append(a);
         });
       });
-        
-      $('#clear').click(function(e){
-        $('#rdn').removeAttr('value');
-        $('#filter').text('');
-        $('#attr').removeAttr('value');
-        // $('select>option:eq(0)').removeAttr('selected');
-        $('select>option:eq(1)').removeAttr('selected');
-        $('select>option:eq(2)').removeAttr('selected');
-        $('select>option:eq(3)').removeAttr('selected');
-        $('#results').contents().remove();
-        document.title = 'Search LDAP';
+    }
+
+    $.loadSavedSearch = function (savedSearch) {
+      $.ajax({
+        headers: {
+          Accept: 'application/json'
+        },
+        url: '/searches/' + savedSearch
+      }).done(function (search) {
+        currentSavedSearch = search.name;
+        $('#rdn').attr('value', search.rdn);
+        $('#filter').text(search.filter);
+        $('#attr').attr('value', search.attrsToReturn.join(' '));
+        let selection = 0;
+        if (search.scope === 'subtree') {
+          selection = 1;
+        } else if (search.scope === 'object') {
+          selection = 2;
+        } else if (search.scope === 'onelevel') {
+          selection = 3
+        }
+        if (selection) {
+          $('select>option:eq(' + selection + ')').attr('selected', 'true');
+        }
+        $('#delete').removeAttr('disabled');
+        $('#update').removeAttr('disabled');
+        $('#save').removeAttr('disabled');
+        $('#searchName').attr('value', savedSearch);
       });
-    </script>
-  </body>
+    }
+
+    $.getFormData = function ($form) {
+      let unindexed = $form.serializeArray();
+      let indexed = {};
+      $.map(unindexed, function (n, i) {
+        if (n['name'] === 'attr') {
+          indexed['attrsToReturn'] = n['value'].split(' ');
+        } else if (n['name'] === 'searchName') {
+          indexed['name'] = n['value'];
+        } else {
+          indexed[n['name']] = n['value'];
+        }
+      });
+      return indexed;
+    }
+
+    $.saveSearch = function () {
+      let searchdata = $.getFormData($('#search'));
+      $.ajax({
+        method: "POST",
+        data: JSON.stringify(searchdata),
+        contentType: 'application/json',
+        url: '/searches'
+      }).done(function () {
+        $.reloadAllSavedSearches();
+        currentSavedSearch = searchdata.name;
+        $('#searchName').attr('value', searchdata.name);
+      }).fail(function (e) {
+        console.log("FAIL");
+      });
+    }
+
+    $.deleteSearch = function () {
+      if (currentSavedSearch) {
+        $.ajax({
+          method: "DELETE",
+          url: '/searches/' + currentSavedSearch
+        }).done(function () {
+          $.reloadAllSavedSearches();
+          $.resetForm();
+          currentSavedSearch = 0;
+        }).fail(function (e) {
+          console.log("FAIL");
+        });
+      }
+    }
+
+    $.updateSearch = function () {
+      let searchdata = $.getFormData($('#search'));
+      $.ajax({
+        method: "PATCH",
+        data: JSON.stringify(searchdata),
+        contentType: 'application/json',
+        url: '/searches/' + currentSavedSearch
+      }).done(function () {
+        console.log("Update OK");
+      }).fail(function (e) {
+        console.log("FAIL");
+      });
+    }
+
+    $(function () {
+      $.loadAllSavedSearches();
+      $('#delete').attr('disabled', '');
+      $('#update').attr('disabled', '');
+      $('#save').attr('disabled', '');
+      $.ajax({
+        headers: {
+          Accept: 'application/json'
+        },
+        url: '/search' + location.search
+      }).done(function (results) {
+
+        $('#host').text(results.connection.host);
+        $('#bindDn').text(results.connection.bindDn);
+
+        if (results.parameters) {
+          $('#rdn').attr('value', results.parameters.rdn);
+          $('#filter').text(results.parameters.filter);
+          let attrValue = '';
+          if (results.parameters.attrs) {
+            results.parameters.attrs.forEach(element => {
+              attrValue = attrValue + element + ' ';
+            });
+            if (attrValue) {
+              $('#attr').attr('value', attrValue.trim());
+            }
+          }
+          let selection = 0;
+          if (results.parameters.searchScope === 'subtree') {
+            selection = 1;
+          } else if (results.parameters.searchScope === 'object') {
+            selection = 2;
+          } else if (results.parameters.searchScope === 'onelevel') {
+            selection = 3
+          }
+
+          if (selection) {
+            $('select>option:eq(' + selection + ')').attr('selected', 'true');
+          }
+
+          if (results.parameters.filter) {
+            let hdrText = 'Results from ' + results.parameters.filter;
+            let h1 = $('<h1/>').attr('id', 'resultTitle').text(hdrText);
+            $('#results').append(h1);
+            let subTitleText = '';
+            if (!results.records || results.records.length === 0) {
+              subTitleText = 'No records matched the given criteria.';
+            } else if (results.records.length === 1) {
+              subTitleText = 'Found 1 record.';
+            } else {
+              subTitleText = 'Found ' + results.records.length + ' records.';
+            }
+            let p = $('<p/>').attr('id', 'resultText').addClass('text-muted').text(subTitleText);
+            $('#results').append(p);
+            document.title = hdrText + ': ' + subTitleText;
+          }
+        }
+
+        // A table for each record
+        if (results.records) {
+          for (let i = 0; i < results.records.length; i++) {
+            let tbl = $("<table />").addClass('table').addClass('table-sm').addClass('table-striped');
+            let caption = $('<caption/>').text(results.records[i].dn);
+            tbl.append(caption);
+            let thead = $('<thead/>')
+            let hdrRow = $('<tr/>')
+            let hdr0 = $('<th/>').attr('scope', 'col').text('Attribute');
+            let hdr1 = $('<th/>').text('Value');
+            hdrRow.append(hdr0).append(hdr1);
+            thead.append(hdrRow);
+            tbl.append(thead);
+            let tbody = $('<tbody/>');
+
+            for (let j = 0; j < results.records[i].attributes.length; j++) {
+              let attr = results.records[i].attributes[j];
+              if (attr.value instanceof Array) {
+                for (let k = 0; k < attr.value.length; k++) {
+                  let row = $('<tr/>');
+                  let rowAttrName = $('<td/>').text(attr.name);
+                  let rowAttrValue = $('<td/>').text(attr.value[k]);
+                  row.append(rowAttrName);
+                  row.append(rowAttrValue);
+                  tbody.append(row);
+                }
+              } else {
+                let row = $('<tr/>');
+                let rowAttrName = $('<td/>').text(attr.name);
+                let rowAttrValue = $('<td/>').text(attr.value);
+                row.append(rowAttrName);
+                row.append(rowAttrValue);
+                tbody.append(row);
+              }
+            }
+            tbl.append(tbody);
+            if ((results.parameters.attrs && results.parameters.attrs.length > 0) ||
+              (results.records.length > 1)) {
+              let attrs = $.getQueryVariable('attr');
+              let attrsQ = 0;
+              if (attrs) {
+                attrsQ = [];
+                attrs.forEach(attr => {
+                  attrsQ.push('attr=' + attr);
+                });
+              }
+              let a = 0;
+              if (attrsQ) {
+                let qstring = '?' + attrsQ.join('&');
+                a = $('<a/>').attr('href', '/record;' + results.records[i].dn.replace(',', ';') + qstring)
+                  .text("View entire record").attr("style", "align:left");
+              } else {
+                a = $('<a/>').attr('href', '/record;' + results.records[i].dn.replace(',', ';'))
+                  .text("View entire record").attr("style", "align:left");
+              }
+              if (a) {
+                $('#results').append(a);
+              }
+            }
+            $('#results').append(tbl);
+          }
+        }
+      }).fail(function (jqXHR, exception) {
+        window.location.replace('/error/' + jqXHR.status);
+      });
+    });
+
+    $('#clear').click(function (e) {
+      $.resetForm();
+    });
+
+    $('#doSave').click(function (e) {
+      $.saveSearch();
+    });
+
+    $('#delete').click(function (e) {
+      $.deleteSearch();
+    });
+
+    $('#update').click(function (e) {
+      $.updateSearch();
+    });
+
+    $('#rdn').bind('input propertychange', function () {
+      $.toggleSaveState();
+    });
+
+    $('#filter').bind('input propertychange', function () {
+      $.toggleSaveState();
+    });
+
+    $('#attr').bind('input propertychange', function () {
+      $.toggleSaveState();
+    });
+
+    $('#scope').bind('input propertychange', function () {
+      $.toggleSaveState();
+    });
+  </script>
+</body>
+
 </html>

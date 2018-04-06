@@ -1,7 +1,6 @@
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLDecoder;
-import java.rmi.Naming;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -10,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Function;
-import java.util.logging.Logger;
 
 import javax.naming.Context;
 import javax.naming.NamingEnumeration;
@@ -35,8 +33,6 @@ class SearchHandler extends BaseLdapHandler {
       }
     };
 
-  private static final Logger LOGGER = Logger.getLogger(SearchHandler.class.getName());
-  
   private static final Map<String, Function<String, List<String>>> PARAM_PROCS;
 
   static {
@@ -76,9 +72,6 @@ class SearchHandler extends BaseLdapHandler {
         
         String searchBase = getSearchBase(rdn);
         SearchControls searchControls = Ldap.getSearchControls(parameters);
-        LOGGER.fine(String.format(
-          "Searching with: base=%s,filter=%s,controls=%s", searchBase, filter, 
-          Ldap.searchControlsToString(searchControls)));
         results = ldapContext.search(searchBase, filter, searchControls);
       }
 

@@ -1,8 +1,12 @@
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.URI;
 import java.rmi.Naming;
 import java.util.Formatter;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,6 +18,9 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import javax.naming.directory.SearchResult;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 
 final class Json {
 
@@ -21,6 +28,62 @@ final class Json {
 
   private Json() {
     // Empty constructor prevents instantiation.
+  }
+
+  static String renderObject(Map<String, Object> object) 
+    throws IOException {
+    StringBuilder rendered = new StringBuilder("{");
+    for (Iterator<String> keys = object.keySet().iterator(); keys.hasNext();) {
+      String key = keys.next();
+      rendered.append('"').append(key).append("\":");
+      Object value = object.get(key);
+      if (value instanceof List) {
+        renderListValues(((List<?>)value), rendered);
+      } else if (value instanceof String) {
+        rendered.append('"').append(value.toString()).append('"');
+      } else if (value instanceof Number || value instanceof Boolean) {
+        rendered.append(value.toString());
+      } else if (value instanceof Map) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> o = (Map<String, Object>) value;
+        rendered.append(renderObject(o));
+      }
+      if (keys.hasNext()) {
+        rendered.append(",");
+      }
+    }
+    rendered.append("}");
+    return rendered.toString();
+  }
+
+  static String renderListValues(Iterable<?> values) throws IOException {
+    StringBuilder a = new StringBuilder();
+    renderListValues(values, a);
+    return a.toString();
+  }
+
+  static void renderListValues(Iterable<?> values, Appendable a) 
+    throws IOException {
+    a.append("[");
+    StringJoiner sj = new StringJoiner(",");
+    for (Object value : values) {
+      if (value instanceof String) {
+        String quoted = "\"" + value.toString() + "\"";
+        sj.add(quoted);
+      } else if (value instanceof Number) {
+        String number = ((Number) value).toString();
+        sj.add(number);
+      } else if (value instanceof Boolean) {
+        String booolean = ((Boolean) value).toString();
+        sj.add(booolean);
+      } else if (value instanceof Map<?, ?>) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> o = (Map<String, Object>) value;
+        sj.add(renderObject(o));
+      }
+    }
+    a.append(sj.toString());
+    a.append("]");
   }
 
   static String renderConnections(Preferences connectionSettings) 
@@ -60,10 +123,14 @@ final class Json {
         connection.get(Settings.LDAP_URL_SETTING, ""));
       f.format("\"baseDn\": \"%s\",", 
         connection.get(Settings.BASE_DN_SETTING, ""));
+      f.format("\"authType\": \"%s\",",
+        connection.get(Settings.AUTHTYPE_SETTING, ""));
       String bindDn = connection.get(Settings.BIND_DN_SETTING, "");
       f.format("\"bindDn\": \"%s\",", bindDn);
-      f.format("\"useStartTls\": %b", 
+      f.format("\"useStartTls\": %b,", 
         connection.getBoolean(Settings.USE_STARTTLS_SETTING, false));
+      f.format("\"referralPolicy\": \"%s\"",
+        connection.get(Settings.REFERRAL_POLICY_SETTING, ""));
       f.out().append('}');
       return f.toString();
     }
@@ -298,6 +365,32 @@ final class Json {
         return '?';
       default:
         return c;
+    }
+  }
+
+  static String renderError(String message) throws IOException {
+    try (Formatter f = new Formatter()) {
+      f.out().append("{\"error\":");
+      f.format("\"%s\"}", message);
+      return f.toString();
+    }
+  }
+
+  static Map<String, Object> marshal(String json) {
+    // With great thanks to 
+    // http://www.adam-bien.com/roller/abien/entry/converting_json_to_map_with
+    ScriptEngineManager seManager = new ScriptEngineManager();
+    ScriptEngine se = seManager.getEngineByName("javascript");
+    LOGGER.fine(() -> String.format("Marshalling %s", json));
+    String script = String.format("Java.asJSONCompatible(%s)", json);
+
+    try {
+      Object evaluated = se.eval(script);
+      @SuppressWarnings("unchecked")
+      Map<String, Object> marshalled = (Map<String, Object>) evaluated;
+      return marshalled;
+    } catch (ScriptException e) {
+      throw new RuntimeException(e);
     }
   }
 }

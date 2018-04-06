@@ -1,7 +1,6 @@
 import java.io.IOException;
 import java.util.List;
 import java.util.StringJoiner;
-import java.util.logging.Logger;
 
 import javax.naming.Context;
 import javax.naming.NamingException;
@@ -13,9 +12,6 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 class RecordViewHandler extends BaseLdapHandler {
-
-  private static final Logger LOGGER = Logger.getLogger(
-    RecordViewHandler.class.getName());
 
   @Override
   String getHtmlTemplateName() {
@@ -32,7 +28,6 @@ class RecordViewHandler extends BaseLdapHandler {
     HttpStatus status = HttpStatus.OK;
     byte[] content = new byte[0];
     try {
-      LOGGER.fine(() -> String.format("Looking up %s...", dn));
       attributes = ldapContext.getAttributes(dn);
       content = Json.renderSingleRecord(Ldap.getLdapHost(
         Ldap.getContextInfo(ldapContext, Context.PROVIDER_URL)),

@@ -17,7 +17,8 @@ class ConnectionsHandler implements HttpHandler {
     HttpStatus status = HttpStatus.OK;
     String contentType = ContentTypes.TYPES.get("html");
 
-    Preferences connectionSettings = Settings.getAllConnectionSettings();
+    Preferences connectionSettings = Preferences.userRoot().node(
+      Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
     String[] connectionNames = new String[0];
     try {
       connectionNames = connectionSettings.childrenNames();

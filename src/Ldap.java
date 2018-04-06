@@ -77,11 +77,9 @@ final class Ldap {
       new byte[0]);
     String password = new String(Settings.byteArrayToSecretText(bindDn, 
       passwordBytes));
-    AuthType authType = AuthType.valueOf(
-      connection.get(Settings.AUTHTYPE_SETTING, "simple").toUpperCase());
-    ReferralPolicy referralPolicy = ReferralPolicy.valueOf(
-      connection.get(Settings.REFERRAL_POLICY_SETTING, "ignore")
-      .toUpperCase());
+    String authType = connection.get(Settings.AUTHTYPE_SETTING, "simple");
+    String referralPolicy = 
+      connection.get(Settings.REFERRAL_POLICY_SETTING, "ignore");
     boolean useStartTls = connection.getBoolean(Settings.USE_STARTTLS_SETTING,
       false);
     return createLdapContext(ldapUrl, baseDn, bindDn, password, authType, 
@@ -89,8 +87,8 @@ final class Ldap {
   }
 
   static LdapContext createLdapContext(String ldapUrl, String baseDn,
-    String bindDn, String password, AuthType authType, 
-    ReferralPolicy referralPolicy, boolean useStartTls) 
+    String bindDn, String password, String authType, 
+    String referralPolicy, boolean useStartTls) 
     throws IOException, NamingException {
     Hashtable<String, String> env = new Hashtable<>();
     env.put(Context.INITIAL_CONTEXT_FACTORY, 
@@ -98,21 +96,21 @@ final class Ldap {
     env.put(Context.PROVIDER_URL, ldapUrl);
     LdapContext ldapContext = new InitialLdapContext(env, null);
     if (useStartTls) {
-      LOGGER.config("Starting TLS session...");
+      LOGGER.fine("Starting TLS session...");
       StartTlsResponse tls = (StartTlsResponse) ldapContext.extendedOperation(
         new StartTlsRequest());
       tls.negotiate();
     }
     ldapContext.addToEnvironment(Context.SECURITY_AUTHENTICATION, 
-      authType.toString().toLowerCase());
-    if (authType != AuthType.NONE) {
-      LOGGER.config("Authenticating...");
+      authType.toLowerCase());
+    if (!authType.equals("none")) {
+      LOGGER.fine("Authenticating...");
       ldapContext.addToEnvironment(Context.SECURITY_PRINCIPAL, bindDn);
       ldapContext.addToEnvironment(Context.SECURITY_CREDENTIALS, password);
     }
     ldapContext.addToEnvironment(Context.REFERRAL, 
-      referralPolicy.toString().toLowerCase());
-    LOGGER.config("Ldap context successfully created!");
+      referralPolicy.toLowerCase());
+    LOGGER.fine("Ldap context successfully created!");
     return ldapContext;
   }
 
@@ -154,7 +152,7 @@ final class Ldap {
       Hashtable<?, ?> env = ldapContext.getEnvironment();
       return (String) env.get(envProperty);
     } catch (NamingException e) {
-      LOGGER.log(Level.INFO, String.format("Failed to get %s, returning null.",
+      LOGGER.log(Level.FINE, String.format("Failed to get %s, returning null.",
         envProperty), e);
       return null;
     }

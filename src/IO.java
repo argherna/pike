@@ -29,7 +29,7 @@ final class IO {
     InputStream resource = IO.class.getResourceAsStream(path);
     try {
       if (resource == null) {
-        LOGGER.warning(String.format(
+        LOGGER.fine(String.format(
           "%s not found! Returning empty byte array!", path));
         return new byte[0];
       }

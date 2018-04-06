@@ -32,6 +32,14 @@
                 <label for="basedn" class="form-control-label">Base DN:</label>
                 <input class="form-control" type="text" placeholder="dc=example,dc=com" id="basedn" name="basedn">
               </div>
+            </fieldset>
+            <fieldset class="form-group row">
+              <legend class="col-form-legend">Authentication</legend>
+              <label for="authtype" class="form-control-label">Authentication Method</label>
+              <select class="form-control" id="authtype" name="authtype">
+                <option value="simple">simple (default)</option>
+                <option value="none">none</option>
+              </select>
               <div class="form-group">
                 <label for="binddn" class="form-control-label">Bind DN:</label>
                 <input class="form-control" type="text" placeholder="cn=ldap-user,ou=Users,dc=example,dc=com" id="binddn" name="binddn">
@@ -51,6 +59,13 @@
                   </label>
                 </div>
               </div>
+              <label for="referralpolicy" class="form-control-label">Referrals</label>
+              <select class="form-control" id="referralpolicy" name="referralpolicy">
+                <option value="ignore">ignore (default)</option>
+                <option value="follow">follow</option>
+                <option value="throw">throw</option>
+              </select>
+              <input class="form-control" type="hidden" id="referralpolicy" name="referralpolicy" value="ignore">
             </fieldset>
             <div class="float-right">
               <a id="return" href="/connections" class="btn btn-light">Return to Connections List</a>
@@ -98,9 +113,11 @@
         $('#name').removeAttr('disabled');
         $('#ldapurl').removeAttr('disabled');
         $('#basedn').removeAttr('disabled');
+        $('#authtype').removeAttr('disabled');
         $('#binddn').removeAttr('disabled');
         $('#password').removeAttr('disabled');
         $('#usestarttls').removeAttr('disabled');
+        $('#referralpolicy').removeAttr('disabled');
         $('#save').removeAttr('disabled');
         $('#clear').removeAttr('disabled');
         $('#cancel').removeAttr('style');
@@ -116,9 +133,11 @@
         $('#name').attr('disabled', '');
         $('#ldapurl').attr('disabled', '');
         $('#basedn').attr('disabled', '');
+        $('#authtype').attr('disabled', '');
         $('#binddn').attr('disabled', '');
         $('#password').attr('disabled', '');
         $('#usestarttls').attr('disabled', '');
+        $('#referralpolicy').attr('disabled', '');
         $('#save').attr('disabled', '');
         $('#clear').attr('disabled', '');
         $('#cancel').attr('style', 'display:none');
@@ -126,6 +145,24 @@
         $('#return').removeAttr('style');
         $('#cancel').attr('style', 'display:none');
       }
+
+      $.authnOff = function() {
+        $('#binddn').attr('disabled', '');
+        $('#password').attr('disabled', '');
+      }
+
+      $.authnOn = function() {
+        $('#binddn').removeAttr('disabled');
+        $('#password').removeAttr('disabled');
+      }
+
+      $('#authtype').on('change', function(){
+        if (this.value === 'none') {
+          $.authnOff();
+        } else {
+          $.authnOn();
+        }
+      });
 
       $(function() {
         if (urlPath !== 0) {
@@ -139,9 +176,23 @@
               $('#ldapurl').attr('value', settings.ldapUrl);
               $('#basedn').attr('value', settings.baseDn);
               $('#binddn').attr('value', settings.bindDn);
-              var useStartTls = settings.useStartTls == true ? 'checked' : 0;
+              let authType = settings.authType;
+              if (authType === 'none') {
+                $('#authtype>option:eq(1)').attr('selected', '');
+              } else {
+                $('#authtype>option:eq(0)').attr('selected', '');
+              }
+              let useStartTls = settings.useStartTls == true ? 'checked' : 0;
               if (useStartTls) {
                 $('#usestarttls').attr('checked', '');
+              }
+              let referralPolicy = settings.referralPolicy;
+              if (referralPolicy === 'follow') {
+                $('#referralpolicy>option:eq(1)').attr('selected', '');
+              } else if (referralPolicy === 'throw') {
+                $('#referralpolicy>option:eq(2)').attr('selected', '');
+              } else{
+                $('#referralpolicy>option:eq(0)').attr('selected', '');
               }
           }).fail(function (jqXHR, exception) {
              window.location.replace('/error/' + jqXHR.status);
