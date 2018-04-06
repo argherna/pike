@@ -30,7 +30,7 @@
           <div class="form-group">
             <label for="scope" class="form-control-label sr-only">Search Scope</label>
             <select class="form-control" id="scope" name="scope">
-              <option>Search Scope...</option>
+              <option value="" disabled selected>Search Scope...</option>
               <option value="subtree">subtree</option>
               <option value="object">object</option>
               <option value="onelevel">onelevel</option>
@@ -181,7 +181,7 @@
         $('#rdn').removeAttr('value');
         $('#filter').text('');
         $('#attr').removeAttr('value');
-        $('select>option:eq(0)').removeAttr('selected');
+        // $('select>option:eq(0)').removeAttr('selected');
         $('select>option:eq(1)').removeAttr('selected');
         $('select>option:eq(2)').removeAttr('selected');
         $('select>option:eq(3)').removeAttr('selected');

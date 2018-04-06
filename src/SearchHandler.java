@@ -72,8 +72,7 @@ class SearchHandler extends BaseLdapHandler {
         filter = Ldap.getFilter(parameters);
         attrs = parameters.get("attr");
         scope = parameters.containsKey("scope") ? 
-        (!parameters.get("scope").get(0).equals("Search Scope...") ? 
-          parameters.get("scope").get(0) : "subtree") : null;
+          parameters.get("scope").get(0) : "subtree";
         
         String searchBase = getSearchBase(rdn);
         SearchControls searchControls = Ldap.getSearchControls(parameters);

@@ -174,7 +174,6 @@ final class Json {
     if (value instanceof String) {
       char[] v = value.toString().replace('\n', ' ').replace('\r', ' ')
         .replace("\\", "\\\\").toCharArray();
-      logCharTypes(v);
       char[] decoded = new char[v.length];
       for (int i = 0; i < v.length; i++) {
         logCharType(v[i]);
@@ -286,7 +285,7 @@ final class Json {
           charTypeName = "Character.FINAL_QUOTE_PUNCTUATION";
           break;
       }
-      types.append(c).append(": ").append(charTypeName);
+      types.append(value).append(": ").append(charTypeName);
       LOGGER.finest(types.toString());
     }
   }
