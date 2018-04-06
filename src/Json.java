@@ -60,10 +60,14 @@ final class Json {
         connection.get(Settings.LDAP_URL_SETTING, ""));
       f.format("\"baseDn\": \"%s\",", 
         connection.get(Settings.BASE_DN_SETTING, ""));
+      f.format("\"authType\": \"%s\",",
+        connection.get(Settings.AUTHTYPE_SETTING, ""));
       String bindDn = connection.get(Settings.BIND_DN_SETTING, "");
       f.format("\"bindDn\": \"%s\",", bindDn);
-      f.format("\"useStartTls\": %b", 
+      f.format("\"useStartTls\": %b,", 
         connection.getBoolean(Settings.USE_STARTTLS_SETTING, false));
+      f.format("\"referralPolicy\": \"%s\"",
+        connection.get(Settings.REFERRAL_POLICY_SETTING, ""));
       f.out().append('}');
       return f.toString();
     }
