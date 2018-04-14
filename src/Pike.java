@@ -295,11 +295,11 @@ class Pike {
     System.err.println();
     System.err.println("Options:");
     System.err.println();
-    System.err.println("  -h, --help       Show this help and exit");
     System.err.println("  -D, --delete-all-connections");
     System.err.println("                   Deletes all connections");
     System.err.println("  -d <conn-name>, --delete-connection <conn-name>");
     System.err.println("                   Delete the connection settings named <conn-name>");
+    System.err.println("  -h, --help       Show this help and exit");
     System.err.println("  -i <file-name>, --import-connections <file-name>");
     System.err.println("                   Import connection settings from <file-name>");
     System.err.println("  -l, --list-connections");

@@ -1,6 +1,6 @@
 # pike
 
-An HTTP-based LDAP browser intended for a single-user or a small team working on a software development project that needs to interact with LDAP.
+An HTTP-based LDAP browser intended for a single-user or a small team working on a software development project that needs to browse a directory.
 
 ## Building
 
@@ -29,21 +29,47 @@ Arguments:
 
 Options:
 
+  -D, --delete-all-connections
+                   Deletes all connections
+  -d <conn-name>, --delete-connection <conn-name>
+                   Delete the connection settings named <conn-name>
   -h, --help       Show this help and exit
+  -i <file-name>, --import-connections <file-name>
+                   Import connection settings from <file-name>
+  -l, --list-connections
+                   List connection names and exit
+  -X, --export-all-connections
+                   Export all connection settings and exit
+  -x <conn-name>, --export-connections <conn-name>
+                   Export connection named <conn-name> and exit
 ```
 
-You can navigate to `http://localhost:8085/` (or to whatever port you set on startup) after starting the server. It will look for any last used connection and then use it starting you off on the search page. If none is found, you will be directed to the page with all server connections listed where you can pick one to use. If there are no saved connections, you'll be directed to a New Connection page that will let you enter connection settings for you to save, then use.
+Start the server by specifying none of the options (you can set the port). Setting the port when using an option will have no affect.
+
+When you start the server, you can navigate to `http://localhost:8085/` (or to whatever port you set on startup) after starting the server. It will look for any last used connection and then use it starting you off on the search page. If none is found, you will be directed to the page with all server connections listed where you can pick one to use. If there are no saved connections, you'll be directed to a New Connection page that will let you enter connection settings for you to save, then use.
 
 ## Philosophy
 
 This server is being built entirely with the JDK, without external dependencies. This limits what can be done quickly in terms of developer productivity, but increases user productivity in that building and running the software is faster (which is the main goal).
 
+## Sharing Settings
+
+Pike will let you download connection settings through the web UI. It will also let you manage them directly from the command line. 
+
+To download settings from the web UI, go to `http://localhost:8085/connections` and either select `Export All Connections` from the `Actions` dropdown, or select an individual connection from the list and then select `Export Selected`. When exporting all connections, the file name is `pike.prefs.xml`. When exporting a single connection, the file name is `pike-CONN_NAME.prefs.xml`.
+
+Connection settings are written to the console (`System.out`) when exporting from the command line. You can redirect this output on most platforms to a file.
+
+Be aware that the passwords are exported as well, but are encrypted when exported.
+
+The format for the connection settings is the standard [Java Preferences XML](http://java.sun.com/dtd/preferences.dtd). It's best not to hand-edit the XML in the file(s), although removing passwords and changing Bind DNs manually is fine.
 ## Roadmap
 
 Desired features:
 
 * Add SASL for server authentication.
 * Improve error messages in the UI and logs.
+* Manage import of connection settings entirely through the web UI.
 
 ## Etymology
 
