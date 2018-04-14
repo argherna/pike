@@ -171,9 +171,15 @@
         url: '/searches/' + savedSearch
       }).done(function (search) {
         currentSavedSearch = search.name;
-        $('#rdn').attr('value', search.rdn);
-        $('#filter').text(search.filter);
-        $('#attr').attr('value', search.attrsToReturn.join(' '));
+        if (search.rdn) {
+          $('#rdn').attr('value', search.rdn);
+        }
+        if (search.filter) {
+          $('#filter').text(search.filter);
+        }
+        if (search.attrsToReturn) {
+          $('#attr').attr('value', search.attrsToReturn.join(' '));
+        }
         let selection = 0;
         if (search.scope === 'subtree') {
           selection = 1;
@@ -188,7 +194,7 @@
         $('#delete').removeAttr('disabled');
         $('#update').removeAttr('disabled');
         $('#save').removeAttr('disabled');
-        $('#searchName').attr('value', savedSearch);
+        $('#searchName').attr('value', search.name);
       });
     }
 
@@ -196,12 +202,14 @@
       let unindexed = $form.serializeArray();
       let indexed = {};
       $.map(unindexed, function (n, i) {
-        if (n['name'] === 'attr') {
-          indexed['attrsToReturn'] = n['value'].split(' ');
-        } else if (n['name'] === 'searchName') {
-          indexed['name'] = n['value'];
-        } else {
-          indexed[n['name']] = n['value'];
+        if (n['value'].length > 0) {
+          if (n['name'] === 'attr') {
+            indexed['attrsToReturn'] = n['value'].split(' ');
+          } else if (n['name'] === 'searchName') {
+            indexed['name'] = n['value'];
+          } else {
+            indexed[n['name']] = n['value'];
+          }
         }
       });
       return indexed;

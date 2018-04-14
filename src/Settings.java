@@ -1,6 +1,7 @@
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -132,7 +133,7 @@ final class Settings {
     String prefnodeName = String.format("%s/%s", 
       CONNECTION_PREFS_ROOT_NODE_NAME, name);
     Preferences settings = Preferences.userRoot().node(prefnodeName);
-    settings.exportNode(bos);
+    settings.exportSubtree(bos);
     LOGGER.fine(() -> {
       return String.format("Exported %s connection settings.", name);
     });
@@ -151,8 +152,12 @@ final class Settings {
 
   static void importSettings(byte[] settings) throws IOException, 
     InvalidPreferencesFormatException {
-    ByteArrayInputStream bis = new ByteArrayInputStream(settings);
-    Preferences.importPreferences(bis);
+    importSettings(new ByteArrayInputStream(settings));
+  }
+  
+  static void importSettings(InputStream is) throws IOException, 
+  InvalidPreferencesFormatException {
+    Preferences.importPreferences(is);
     LOGGER.fine("Import settings complete.");
   }
 }

@@ -1,160 +1,169 @@
-
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <link rel="stylesheet" href="../../../css/bootstrap.min.css">
-    <link rel="stylesheet" href="../../../css/bootstrap-table.css">
-    <title>Connections</title>
-  </head>
-  <body>
-    <div class="container">
-      <header>
-        <h1>Connections</h1>
-      </header>
-      <section>
-        <article>
-          <div class="dropdown show">
-            <a class="btn btn-light dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</a>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
-              <a id="newConnection" class="dropdown-item" href="/connection">New Connection</a>
-              <a id="useConnection" class="dropdown-item disabled" href="#">Use</a>
-              <a id="delConnection" class="dropdown-item disabled" href="#">Delete</a>
-            </div>
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <link rel="stylesheet" href="../../../css/bootstrap.min.css">
+  <link rel="stylesheet" href="../../../css/bootstrap-table.css">
+  <title>Connections</title>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>Connections</h1>
+    </header>
+    <section>
+      <article>
+        <div class="dropdown show">
+          <a class="btn btn-light dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-haspopup="true"
+            aria-expanded="false">Actions</a>
+          <div class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+            <a id="newConnection" class="dropdown-item" href="/connection">New Connection</a>
+            <a id="useConnection" class="dropdown-item disabled" href="#">Use</a>
+            <a id="delConnection" class="dropdown-item disabled" href="#">Delete</a>
+            <a id="exportAll" class="dropdown-item" href="/settings">Export All Connections</a>
+            <a id="exportSelected" class="dropdown-item disabled" href="#">Export Selected</a>
           </div>
-            <table id="connections"
-              data-classes="table table-sm table-no-bordered"
-              data-striped="true"
-              data-toggle="table" 
-              data-url="/connections/settings">
-              <thead>
-                <tr>
-                  <th scope="col" data-field="state" data-checkbox="true"></th>
-                  <th scope="col" data-field="name" data-formatter="connection_name_link_formatter">Connection Name</th>
-                  <th scope="col" data-field="host">Host</th>
-                  <th scope="col" data-field="bindDn">Bind DN</th>
-                </tr>
-              </thead>
-              <tbody>
-              </tbody>
-            </table>
-        </article>
-      </section>
-    </div>
-    <script src="../../../js/popper.min.js"></script>
-    <script src="../../../js/jquery.min.js"></script>
-    <script src="../../../js/bootstrap.min.js"></script>
-    <script src="../../../js/bootstrap-table.js"></script>
-    <script>
+        </div>
+        <table id="connections" data-classes="table table-sm table-no-bordered" data-striped="true" data-toggle="table" data-url="/connections/settings">
+          <thead>
+            <tr>
+              <th scope="col" data-field="state" data-checkbox="true"></th>
+              <th scope="col" data-field="name" data-formatter="connection_name_link_formatter">Connection Name</th>
+              <th scope="col" data-field="host">Host</th>
+              <th scope="col" data-field="bindDn">Bind DN</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </article>
+    </section>
+  </div>
+  <script src="../../../js/popper.min.js"></script>
+  <script src="../../../js/jquery.min.js"></script>
+  <script src="../../../js/bootstrap.min.js"></script>
+  <script src="../../../js/bootstrap-table.js"></script>
+  <script>
 
-      function delete_connections(names) {
-        names.forEach(element => {
-          console.log('Deleting ' + element.name);
-          $.ajax({
-            url: '/connection/' + element.name,
-            type: 'DELETE',
-            statusCode: {
-              204: function() {
-                console.log('Successfully deleted ' + element.name);
-              }
-            }
-          });
-        });
-        window.location.replace('/connections');
-      }
-
-      function use_connection(conn_name) {
-        console.log('Using ' + conn_name);
+    function delete_connections(names) {
+      names.forEach(element => {
+        console.log('Deleting ' + element.name);
         $.ajax({
-          url: '/connection/' + conn_name,
-          type: 'PATCH',
+          url: '/connection/' + element.name,
+          type: 'DELETE',
           statusCode: {
-            204: function() {
-              console.log('Activated ' + conn_name);
+            204: function () {
+              console.log('Successfully deleted ' + element.name);
             }
           }
-        }).fail(function (jqXHR, exception) {
-             window.location.replace('/error/' + jqXHR.status);
         });
-        window.location.replace('/search');
-      }
+      });
+      window.location.replace('/connections');
+    }
 
-      function connection_name_link_formatter(value, row, index, field) {
-        return '<a href="/connection/' + value + '">' + value + '</a>';
-      }
+    function use_connection(conn_name) {
+      console.log('Using ' + conn_name);
+      $.ajax({
+        url: '/connection/' + conn_name,
+        type: 'PATCH',
+        statusCode: {
+          204: function () {
+            console.log('Activated ' + conn_name);
+          }
+        }
+      }).fail(function (jqXHR, exception) {
+        window.location.replace('/error/' + jqXHR.status);
+      });
+      window.location.replace('/search');
+    }
 
-      var checkedRows = [];
-      var conn_name = '';
-      $('#connections').on('uncheck-all.bs.table', function(rows) {
-        checkedRows = [];
+    function connection_name_link_formatter(value, row, index, field) {
+      return '<a href="/connection/' + value + '">' + value + '</a>';
+    }
+
+    var checkedRows = [];
+    var conn_name = '';
+    $('#connections').on('uncheck-all.bs.table', function (rows) {
+      checkedRows = [];
+      $('#delConnection').addClass('disabled');
+      $('#delConnection').attr('href', '#');
+      $('#newConnection').removeClass('disabled');
+      $('#newConnection').attr('href', '/connection');
+      $('#useConnection').addClass('disabled');
+      $('#useConnection').attr('href', '#');
+    });
+
+    $('#connections').on('check-all.bs.table', function (rows) {
+      let table_rows = rows.target.children.item(1).children;
+      for (let i = 0; i < table_rows.length; i++) {
+        let table_row = table_rows[i];
+        checkedRows.push({ name: table_row.children.item(1).children.item(0).innerText });
+      }
+      $('#delConnection').removeClass('disabled');
+      $('#delConnection').attr('href', 'javascript:delete_connections(checkedRows)');
+      $('#newConnection').addClass('disabled');
+      $('#newConnection').attr('href', '#');
+      if (checkedRows.length == 1) {
+        conn_name = checkedRows[0].name;
+        $('#useConnection').removeClass('disabled');
+        $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
+      } else {
+        $('#useConnection').addClass('disabled');
+        $('#useConnection').attr('href', '#');
+      }
+    });
+
+    $('#connections').on('check.bs.table', function (e, row) {
+      checkedRows.push({ name: row.name });
+      $('#delConnection').removeClass('disabled');
+      $('#delConnection').attr('href', 'javascript:delete_connections(checkedRows)');
+      $('#newConnection').addClass('disabled');
+      $('#newConnection').attr('href', '#');
+      if (checkedRows.length == 1) {
+        conn_name = row.name;
+        $('#useConnection').removeClass('disabled');
+        $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
+        $('#exportSelected').removeClass('disabled');
+        $('#exportSelected').attr('href', '/settings/' + conn_name);
+      } else {
+        $('#useConnection').addClass('disabled');
+        $('#useConnection').attr('href', '#');
+        $('#exportSelected').addClass('disabled');
+        $('#exportSelected').attr('href', '#');
+      }
+    });
+
+    $('#connections').on('uncheck.bs.table', function (e, row) {
+      $.each(checkedRows, function (index, value) {
+        if (value.name === row.name) {
+          checkedRows.splice(index, 1);
+        }
+      });
+      if (checkedRows.length == 0) {
         $('#delConnection').addClass('disabled');
         $('#delConnection').attr('href', '#');
         $('#newConnection').removeClass('disabled');
         $('#newConnection').attr('href', '/connection');
+      }
+      if (checkedRows.length == 1) {
+        conn_name = row.name;
+        $('#useConnection').removeClass('disabled');
+        $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
+        $('#exportSelected').removeClass('disabled');
+        $('#exportSelected').attr('href', '/settings/' + conn_name);
+      } else {
         $('#useConnection').addClass('disabled');
         $('#useConnection').attr('href', '#');
-      });
-  
-      $('#connections').on('check-all.bs.table', function(rows) {
-        let table_rows = rows.target.children.item(1).children;
-        for (let i = 0; i < table_rows.length; i++) {
-          let table_row = table_rows[i];
-          checkedRows.push({name: table_row.children.item(1).children.item(0).innerText});
-        }
-        $('#delConnection').removeClass('disabled');
-        $('#delConnection').attr('href', 'javascript:delete_connections(checkedRows)');
-        $('#newConnection').addClass('disabled');
-        $('#newConnection').attr('href', '#');
-        if (checkedRows.length == 1) {
-          conn_name = checkedRows[0].name;
-          $('#useConnection').removeClass('disabled');
-          $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
-        } else {
-          $('#useConnection').addClass('disabled');
-          $('#useConnection').attr('href', '#');
-        }
-      });
-  
-      $('#connections').on('check.bs.table', function (e, row) {
-        checkedRows.push({name: row.name});
-        $('#delConnection').removeClass('disabled');
-        $('#delConnection').attr('href', 'javascript:delete_connections(checkedRows)');
-        $('#newConnection').addClass('disabled');
-        $('#newConnection').attr('href', '#');
-        if (checkedRows.length == 1) {
-          conn_name = row.name;
-          $('#useConnection').removeClass('disabled');
-          $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
-        } else {
-          $('#useConnection').addClass('disabled');
-          $('#useConnection').attr('href', '#');
-        }
-      });
-      
-      $('#connections').on('uncheck.bs.table', function (e, row) {
-        $.each(checkedRows, function(index, value) {
-          if (value.name === row.name) {
-            checkedRows.splice(index, 1);
-          }
-        });
-        if (checkedRows.length == 0) {
-          $('#delConnection').addClass('disabled');
-          $('#delConnection').attr('href', '#');
-          $('#newConnection').removeClass('disabled');
-          $('#newConnection').attr('href', '/connection');
-        }
-        if (checkedRows.length == 1) {
-          conn_name = row.name;
-          $('#useConnection').removeClass('disabled');
-          $('#useConnection').attr('href', 'javascript:use_connection(conn_name)');
-        } else {
-          $('#useConnection').addClass('disabled');
-          $('#useConnection').attr('href', '#');
-        }
-      });
-    </script>
-  </body>
+        $('#exportSelected').addClass('disabled');
+        $('#exportSelected').attr('href', '#');
+      }
+    });
+  </script>
+</body>
+
 </html>

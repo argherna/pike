@@ -1,4 +1,7 @@
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -12,6 +15,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
+import java.util.prefs.InvalidPreferencesFormatException;
 import java.util.prefs.Preferences;
 
 import javax.naming.NamingException;
@@ -40,14 +44,68 @@ class Pike {
   public static void main(String... args) {
     int port = DEFAULT_HTTP_SERVER_PORT;
     int argIdx = 0;
-
+    String connName = null;
+    String filename = null;
     while (argIdx < args.length) {
       String arg = args[argIdx];
       switch (arg) {
+        case "-D":
+        case "--delete-all-connections":
+          try {
+            deleteAllConnections();
+            System.exit(0);
+          } catch (BackingStoreException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+          }
+        case "-d":
+        case "--delete-connection":
+          connName = args[++argIdx];
+          try {
+            deleteConnection(connName);
+            System.exit(0);
+          } catch (BackingStoreException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+          }
         case "-h":
         case "--help":
           showUsageAndExit(2);
           break;
+        case "-i":
+        case "--import-connections":
+          filename = args[++argIdx];
+          try {
+            importConnections(filename);
+            System.exit(0);
+          } catch (IOException | InvalidPreferencesFormatException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+          }
+        case "-l":
+        case "--list-connections":
+          listConnections();
+          System.exit(0);
+        case "-X":
+        case "--export-all-connections":
+          try {
+            exportAll(System.out);
+            System.exit(0);
+          } catch (IOException | BackingStoreException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+          }
+          break;
+        case "-x":
+        case "--export-connection":
+          connName = args[++argIdx];
+          try {
+            export(connName, System.out);
+            System.exit(0);
+          } catch (IOException | BackingStoreException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+          }
         default:
           if (arg.startsWith("-")) {
             System.err.printf("Unknown option %s%n", arg);
@@ -98,6 +156,8 @@ class Pike {
       pike.addHandler("/searches", new SearchesHandler(),
         List.of(logRequestFilter, faviconFilter, jsonInFilter, 
           internalServerErrorFilter));
+      pike.addHandler("/settings", new SettingsHandler(), 
+        List.of(logRequestFilter, faviconFilter, internalServerErrorFilter));
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
@@ -161,9 +221,7 @@ class Pike {
       toDelete.close();
       LOGGER.info(() -> String.format("Deleted %s", connectionName));
     }
-    Preferences connection = Settings.getConnectionSettings(connectionName);
-    connection.removeNode();
-    connection.flush();
+    deleteConnection(connectionName);
     LOGGER.info(
       String.format("Deleted connection settings for %s", connectionName));
     String activeConnectionName = Settings.getActiveConnectionName();
@@ -172,6 +230,51 @@ class Pike {
         .node(Settings.PREFERENCES_ROOT_NODE_NAME);
       pikeRoot.remove(Settings.ACTIVE_CONN_NAME_SETTING);
       pikeRoot.flush();
+    }
+  }
+
+  private static void deleteAllConnections() throws BackingStoreException {
+    Preferences connections = Preferences.userRoot()
+      .node(Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
+    connections.removeNode();
+    connections.flush();
+  }
+
+  private static void deleteConnection(String name) 
+    throws BackingStoreException {
+    Preferences connection = Settings.getConnectionSettings(name);
+    connection.removeNode();
+    connection.flush();
+  }
+
+  private static void export(String name, PrintStream out) 
+    throws BackingStoreException, IOException {
+    byte[] prefs = Settings.exportConnectionSettings(name);
+    out.print(new String(prefs));
+  }
+
+  private static void exportAll(PrintStream out) 
+    throws BackingStoreException, IOException {
+    byte[] prefs = Settings.exportAllConnectionSettings();
+    out.print(new String(prefs));
+  }
+
+  private static void importConnections(String filename) 
+    throws IOException, InvalidPreferencesFormatException {
+    InputStream is = new FileInputStream(filename);
+    Settings.importSettings(is);
+  }
+
+  private static void listConnections() {
+    Preferences connections = Preferences.userRoot()
+      .node(Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
+    try {
+      String[] children = connections.childrenNames();
+      for (String child : children) {
+        System.out.println(child);
+      }
+    } catch (BackingStoreException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -193,6 +296,18 @@ class Pike {
     System.err.println("Options:");
     System.err.println();
     System.err.println("  -h, --help       Show this help and exit");
+    System.err.println("  -D, --delete-all-connections");
+    System.err.println("                   Deletes all connections");
+    System.err.println("  -d <conn-name>, --delete-connection <conn-name>");
+    System.err.println("                   Delete the connection settings named <conn-name>");
+    System.err.println("  -i <file-name>, --import-connections <file-name>");
+    System.err.println("                   Import connection settings from <file-name>");
+    System.err.println("  -l, --list-connections");
+    System.err.println("                   List connection names and exit");
+    System.err.println("  -X, --export-all-connections");
+    System.err.println("                   Export all connection settings and exit");
+    System.err.println("  -x <conn-name>, --export-connections <conn-name>");
+    System.err.println("                   Export connection named <conn-name> and exit");
   }  
 
   Pike(int port) throws IOException {
