@@ -42,7 +42,6 @@ This server is being built entirely with the JDK, without external dependencies.
 
 Desired features:
 
-* Save searches associated with an LDAP server.
 * Add import/export of saved settings and searches.
 * Add SASL for server authentication.
 * Improve error messages in the UI and logs.
