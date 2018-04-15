@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.InvalidPreferencesFormatException;
 
@@ -14,10 +13,8 @@ import com.sun.net.httpserver.HttpHandler;
 
 class SettingsHandler implements HttpHandler {
 
-  private static final Logger LOGGER = Logger.getLogger(
-    SettingsHandler.class.getName());
-
-  private static final String BOUNDARY = ContentTypes.TYPES.get("upload") + "; boundary=";
+  private static final String BOUNDARY = ContentTypes.TYPES.get("upload") + 
+    "; boundary=";
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
@@ -92,11 +89,12 @@ class SettingsHandler implements HttpHandler {
   private byte[] getUploadedData(HttpExchange exchange, String contentType) 
   throws IOException {
     String boundary = contentType.substring(BOUNDARY.length());
-    String[] requestBodyLines = new String(exchange.getRequestBody().readAllBytes()).split("\\n");
+    String[] requestBodyLines = new String(exchange.getRequestBody()
+      .readAllBytes()).split("\\n");
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     for (String line : requestBodyLines) {
       // Don't process the multipart boundary, any Content lines, or 
-      // processing instructions.
+      // processing instructions. Simple for now, will be upgraded when needed.
       if (!line.contains(boundary) && 
         !line.startsWith("Content") && 
         !line.isEmpty() && !line.startsWith("<?")) {

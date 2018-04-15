@@ -54,22 +54,23 @@ This server is being built entirely with the JDK, without external dependencies.
 
 ## Sharing Settings
 
-Pike will let you download connection settings through the web UI. It will also let you manage them directly from the command line. 
+Pike will let you manage connection settings through the web UI and the command line. 
 
 To download settings from the web UI, go to `http://localhost:8085/connections` and either select `Export All Connections` from the `Actions` dropdown, or select an individual connection from the list and then select `Export Selected`. When exporting all connections, the file name is `pike.prefs.xml`. When exporting a single connection, the file name is `pike-CONN_NAME.prefs.xml`.
+
+To upload settings from the web UI, go to `http://localhost:8085/connections` and select `Upload Connection(s)`. Choose the file you want to upload and hit the `Upload` button.
 
 Connection settings are written to the console (`System.out`) when exporting from the command line. You can redirect this output on most platforms to a file.
 
 Be aware that the passwords are exported as well, but are encrypted when exported.
 
-The format for the connection settings is the standard [Java Preferences XML](http://java.sun.com/dtd/preferences.dtd). It's best not to hand-edit the XML in the file(s), although removing passwords and changing Bind DNs manually is fine.
+The format for the connection settings is the standard [Java Preferences XML](http://java.sun.com/dtd/preferences.dtd). It's best to avoid manually editing the XML in the file(s), but removing passwords and changing Bind DNs manually is fine.
 ## Roadmap
 
 Desired features:
 
 * Add SASL for server authentication.
 * Improve error messages in the UI and logs.
-* Manage import of connection settings entirely through the web UI.
 
 ## Etymology
 
