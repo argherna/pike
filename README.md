@@ -52,6 +52,13 @@ When you start the server, you can navigate to `http://localhost:8085/` (or to w
 
 This server is being built entirely with the JDK, without external dependencies. This limits what can be done quickly in terms of developer productivity, but increases user productivity in that building and running the software is faster (which is the main goal).
 
+## Saved Searches
+
+When you're on the search page, you can save your searches by entering information in the fields and then hitting the `Save Search` button. You'll be prompted for a name for the search. You can open a saved search by selecting it from the `Searches` dropdown.
+
+Searches can be updated with new parameters by hitting the `Update Current Search` button. This will save all data in the form fields with the currently used search.
+
+Saved searches can be deleted by hitting the `Delete Search` button.
 ## Sharing Settings
 
 Pike will let you manage connection settings through the web UI and the command line. 
@@ -62,7 +69,7 @@ To upload settings from the web UI, go to `http://localhost:8085/connections` an
 
 Connection settings are written to the console (`System.out`) when exporting from the command line. You can redirect this output on most platforms to a file.
 
-Be aware that the passwords are exported as well, but are encrypted when exported.
+Be aware that the passwords are exported as well, but are encrypted when exported. Saved searches will be exported with the connection settings they're associated with.
 
 The format for the connection settings is the standard [Java Preferences XML](http://java.sun.com/dtd/preferences.dtd). It's best to avoid manually editing the XML in the file(s), but removing passwords and changing Bind DNs manually is fine.
 ## Roadmap
