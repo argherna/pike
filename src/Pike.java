@@ -332,6 +332,8 @@ class Pike {
           httpServer.getAddress().getPort(), context.getPath())
       );
     }
+    LOGGER.info(() -> String.format("%s started under PID %d", 
+      Pike.class.getName(), ProcessHandle.current().pid()));
     httpServer.start();
   }
 
