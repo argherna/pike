@@ -1,0 +1,3 @@
+-Xdiags:verbose
+--release 9
+-d bin
