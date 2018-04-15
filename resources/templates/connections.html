@@ -25,6 +25,7 @@
             <a id="newConnection" class="dropdown-item" href="/connection">New Connection</a>
             <a id="useConnection" class="dropdown-item disabled" href="#">Use</a>
             <a id="delConnection" class="dropdown-item disabled" href="#">Delete</a>
+            <a id="uploadfile" class="dropdown-item" href="#connUploadDlg" data-toggle="modal" data-target="#connUploadDlg">Upload Connection(s)</a>
             <a id="exportAll" class="dropdown-item" href="/settings">Export All Connections</a>
             <a id="exportSelected" class="dropdown-item disabled" href="#">Export Selected</a>
           </div>
@@ -43,6 +44,28 @@
         </table>
       </article>
     </section>
+  </div>
+  <div class="modal fade" id="connUploadDlg" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="saveSearchAsTitle">Upload Connections File</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form method="POST" enctype="multipart/form-data" id="connUpload">
+          <div class="modal-body">
+            <label for="searchName" class="form-control-label sr-only">Choose File</label>
+            <input type="file" class="form-control" id="uploadFile" name="uploadFile">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" data-dismiss="modal" id="upload">Upload File</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
   <script src="../../../js/popper.min.js"></script>
   <script src="../../../js/jquery.min.js"></script>
@@ -162,6 +185,26 @@
         $('#exportSelected').addClass('disabled');
         $('#exportSelected').attr('href', '#');
       }
+    });
+
+    $('#upload').click(function (e) {
+      e.preventDefault();
+      let form = $('#connUpload')[0];
+      let data = new FormData(form);
+      $("#upload").prop("disabled", true);
+      $.ajax({
+        type: 'POST',
+        enctype: 'multipart/form-data',
+        url: '/settings',
+        data: data,
+        processData: false,
+        contentType: false,
+        cache: false
+      }).done(function () {
+        $('#connections').bootstrapTable('refresh', {});
+        $('#upload').prop('disabled', false);
+        $('#connUploadDlg').modal('toggle');
+      });
     });
   </script>
 </body>
