@@ -269,7 +269,7 @@
         headers: {
           Accept: 'application/json'
         },
-        url: '/search' + location.search
+        url: '/search/results' + location.search
       }).done(function (results) {
 
         $('#host').text(results.connection.host);

@@ -1,7 +1,10 @@
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.logging.Logger;
 
@@ -13,9 +16,10 @@ final class IO {
 
   private static final Logger LOGGER = Logger.getLogger(IO.class.getName());
   
-  private IO (){
+  private IO() {
     // Empty constructor prevents instantiation.
   }
+
   static String loadUtf8ResourceFromClasspath(String path) throws IOException {
     byte[] resourceBytes = loadResourceFromClasspath(path);
     return new String(resourceBytes, Charset.forName("UTF-8"));
@@ -56,5 +60,24 @@ final class IO {
       bos.write(buf, 0, read);
     }
     return bos.toByteArray();    
+  }
+
+  static long lastMTime(String path) throws IOException {
+    long lastModifiedTime = -1l;
+    try {
+      if (IO.class.getResource(path) != null) {
+        URI fileUri = IO.class.getResource(path).toURI();
+        File resource = null;
+        if (fileUri.toASCIIString().startsWith("jar:")) {
+          resource = new File(fileUri.toASCIIString().substring(4));
+        } else {
+          resource = new File(fileUri);
+        }
+        lastModifiedTime = resource.lastModified();
+      }
+    } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
+    return lastModifiedTime;
   }
 }

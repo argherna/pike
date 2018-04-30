@@ -65,7 +65,6 @@
                 <option value="follow">follow</option>
                 <option value="throw">throw</option>
               </select>
-              <input class="form-control" type="hidden" id="referralpolicy" name="referralpolicy" value="ignore">
             </fieldset>
             <div class="float-right">
               <a id="return" href="/connections" class="btn btn-light">Return to Connections List</a>
@@ -170,7 +169,7 @@
             headers : {
               Accept: 'application/json'
             },
-            url : '/connection/' + urlPath
+            url : '/connection/settings/' + urlPath
           }).done(function(settings) {
               $('#name').attr('value', settings.name);
               $('#ldapurl').attr('value', settings.ldapUrl);

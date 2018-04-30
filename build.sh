@@ -16,7 +16,7 @@ find src -type f -name *.java > $SOURCES
 
 # Compile the program.
 #
-javac @javac.opts @$SOURCES
+javac @javac.opts --release 9 -d bin @$SOURCES
 
 # Package as a jar file.
 #
