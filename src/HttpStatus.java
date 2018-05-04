@@ -7,6 +7,8 @@ enum HttpStatus {
   NO_CONTENT(204, "No Content"),
   
   FOUND (302, "Found"),
+
+  NOT_MODIFIED(304, "Not Modified"),
   
   TEMPORARY_REDIRECT(307, "Temporary Redirect"), 
 

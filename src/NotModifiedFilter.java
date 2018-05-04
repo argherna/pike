@@ -217,7 +217,7 @@ class NotModifiedFilter extends Filter {
       if (in.containsKey("If-None-Match")) {
         String inm = in.getFirst("If-None-Match");
         if (inm.equals(Long.toHexString(checksum.getValue()))) {
-          this.statusCode = 304;
+          this.statusCode = HttpStatus.NOT_MODIFIED.getStatusCode();
           this.responseLength = -1l;
         } else {
           setETag(checksum);
@@ -254,7 +254,7 @@ class NotModifiedFilter extends Filter {
         // OMG@!! THERE IT IS AGAIN!!!! HAAAAAAHAAHAHA!
         out.put("Last-Modified", List.of(fmt.format(mTime)));
       } else {
-        this.statusCode = 304;
+        this.statusCode = HttpStatus.NOT_MODIFIED.getStatusCode();
       }
       send(responseBody.toByteArray());
     }
