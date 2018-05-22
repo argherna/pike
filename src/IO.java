@@ -26,15 +26,13 @@ final class IO {
   }
 
   static byte[] loadResourceFromClasspath(String path) throws IOException {
-    LOGGER.fine(() -> {
-      return String.format("Loading %s...", path);
-    });
+    LOGGER.fine(() -> String.format("Loading %s...", path));
     byte[] contents = null;
     InputStream resource = IO.class.getResourceAsStream(path);
     try {
       if (resource == null) {
-        LOGGER.fine(String.format(
-          "%s not found! Returning empty byte array!", path));
+        LOGGER.fine((() -> String.format(
+          "%s not found! Returning empty byte array!", path)));
         return new byte[0];
       }
       contents = toByteArray(resource);
@@ -43,9 +41,7 @@ final class IO {
         resource.close();
       }
     }
-    LOGGER.fine(() -> {
-      return String.format("%s loaded successfully!", path);
-    });
+    LOGGER.fine(() ->  String.format("%s loaded successfully!", path));
     return contents;
   }
 
