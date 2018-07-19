@@ -8,9 +8,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.InvalidPreferencesFormatException;
@@ -126,15 +124,11 @@ final class Settings {
     String ldapUrl = connectionSettingsPref.get(Settings.LDAP_URL_SETTING, "");
     String host = ldapUrl.isEmpty() ? "" : URI.create(ldapUrl).getHost();
 
-    Map<String, Object> connectionSettings = new HashMap<>();
-    connectionSettings.put("name", name);
-    connectionSettings.put("host", host);
-    connectionSettings.put("ldapUrl", ldapUrl);
-    connectionSettings.put("baseDn", connectionSettingsPref.get(Settings.BASE_DN_SETTING, ""));
-    connectionSettings.put("authType", connectionSettingsPref.get(Settings.AUTHTYPE_SETTING, ""));
-    connectionSettings.put("bindDn", connectionSettingsPref.get(Settings.BIND_DN_SETTING, ""));
-    connectionSettings.put("useStartTls", connectionSettingsPref.getBoolean(Settings.USE_STARTTLS_SETTING, false));
-    return connectionSettings;
+    return Map.of("name", name, "host", host, "ldapUrl", ldapUrl, "baseDn",
+        connectionSettingsPref.get(Settings.BASE_DN_SETTING, ""), "authType",
+        connectionSettingsPref.get(Settings.AUTHTYPE_SETTING, ""), "bindDn",
+        connectionSettingsPref.get(Settings.BIND_DN_SETTING, ""), "useStartTls",
+        connectionSettingsPref.getBoolean(Settings.USE_STARTTLS_SETTING, false));
   }
 
   static String getActiveConnectionName() {

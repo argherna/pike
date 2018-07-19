@@ -3,14 +3,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
-import javax.naming.Context;
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapContext;
 
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 
 class RecordViewHandler extends BaseLdapHandler {
 

@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.logging.Logger;
-import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
 import com.sun.net.httpserver.Headers;
@@ -23,13 +22,8 @@ class ConnectionHandler implements HttpHandler {
     return Arrays.asList(Boolean.valueOf(booleanValue).toString());
   };
 
-  private static final Map<String, Function<String, List<String>>> PARAM_PROCS;
-
-  static {
-    Map<String, Function<String, List<String>>> paramProcs = new HashMap<>();
-    paramProcs.put("usestarttls", CHECKBOX_PROCESSOR);
-    PARAM_PROCS = Collections.unmodifiableMap(paramProcs);
-  }
+  private static final Map<String, Function<String, List<String>>> PARAM_PROCS = Collections
+      .unmodifiableMap(Collections.singletonMap("usestarttls", CHECKBOX_PROCESSOR));
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {

@@ -1,11 +1,5 @@
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
 import java.util.Formatter;
-import java.util.List;
-import java.util.Map;
-import java.util.prefs.Preferences;
 
 final class Html {
 
