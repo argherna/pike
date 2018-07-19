@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 
 import javax.naming.Context;
@@ -22,17 +23,16 @@ class RecordViewHandler extends BaseLdapHandler {
   void doJson(HttpExchange exchange) throws IOException {
     LdapContext ldapContext = getLdapContext();
     Attributes attributes = null;
-    String dn = getDnFromPath(
-      Http.getLastPathComponent(exchange.getRequestURI().getPath()));
+    String dn = getDnFromPath(Http.getLastPathComponent(exchange.getRequestURI().getPath()));
     String contentType = ContentTypes.TYPES.get("json");
     HttpStatus status = HttpStatus.OK;
     byte[] content = new byte[0];
     try {
       attributes = ldapContext.getAttributes(dn);
-      content = Json.renderSingleRecord(Ldap.getLdapHost(
-        Ldap.getContextInfo(ldapContext, Context.PROVIDER_URL)),
-        Ldap.getContextInfo(ldapContext, Context.SECURITY_PRINCIPAL),
-        dn, attributes).getBytes();
+      content = Json
+          .renderObject(Map.of("connection", Settings.getConnectionSettingsAsMap(Settings.getActiveConnectionName()),
+              "record", Maps.toMap(dn, attributes)))
+          .getBytes();
     } catch (NamingException e) {
       throw new RuntimeException(e);
     }
@@ -41,8 +41,7 @@ class RecordViewHandler extends BaseLdapHandler {
 
   private String getDnFromPath(String path) {
     StringJoiner joiner = new StringJoiner(",");
-    List.of(path.split(";")).stream().filter(c -> c.indexOf("=") != -1)
-      .forEach(c -> joiner.add(c));
+    List.of(path.split(";")).stream().filter(c -> c.indexOf("=") != -1).forEach(c -> joiner.add(c));
     return joiner.toString();
   }
 }

@@ -32,8 +32,7 @@ class SettingsHandler implements HttpHandler {
         Http.addContentTypeResponseHeaders(responseHeaders, 
           ContentTypes.TYPES.get("json"));
         responseHeaders.put("Allow", List.of("GET", "POST"));
-        byte[] content = Json.renderError(
-          String.format("Method %s not allowed!", method)).getBytes();
+        byte[] content = Json.renderObject(Map.of("error", String.format("Method %s not allowed!", method))).getBytes();
         Http.sendResponse(exchange, HttpStatus.METHOD_NOT_ALLOWED, content, 
           responseHeaders);
         return;

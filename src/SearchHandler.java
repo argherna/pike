@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,15 +24,14 @@ import com.sun.net.httpserver.HttpHandler;
 
 class SearchHandler extends BaseLdapHandler {
 
-  private static final Function<String, List<String>> ATTRS_FUNCTION =
-    s -> {
-      try {
-        return Arrays.asList(URLDecoder.decode(s, "UTF-8").split(" "));
-      } catch (IOException e) {
-        // Shouldn't happen, throw a RuntimeException so it's logged.
-        throw new RuntimeException(e);
-      }
-    };
+  private static final Function<String, List<String>> ATTRS_FUNCTION = s -> {
+    try {
+      return Arrays.asList(URLDecoder.decode(s, "UTF-8").split(" "));
+    } catch (IOException e) {
+      // Shouldn't happen, throw a RuntimeException so it's logged.
+      throw new RuntimeException(e);
+    }
+  };
 
   private static final Map<String, Function<String, List<String>>> PARAM_PROCS;
 
@@ -53,38 +53,64 @@ class SearchHandler extends BaseLdapHandler {
     byte[] content = new byte[0];
     LdapContext ldapContext = getLdapContext();
 
-    String rdn = null;
-    String filter = null;
-    List<String> attrs = null;
-    String scope = null;
+    String rdn = "";
+    String filter = "";
+    List<String> attrs = List.of();
+    String scope = "";
     String rawQuery = exchange.getRequestURI().getRawQuery();
     Map<String, List<String>> parameters = new HashMap<>();
     NamingEnumeration<SearchResult> results = null;
+    List<Map<String, Object>> records = List.of();
     try {
       if (rawQuery != null && !rawQuery.isEmpty()) {
         parameters = Http.queryToMap(rawQuery, PARAM_PROCS);
-        rdn = parameters.containsKey("rdn") ? parameters.get("rdn").get(0) : 
-          null;
+        rdn = parameters.containsKey("rdn") ? parameters.get("rdn").get(0) : null;
         filter = Ldap.getFilter(parameters);
         attrs = parameters.get("attr");
-        scope = parameters.containsKey("scope") ? 
-          parameters.get("scope").get(0) : "subtree";
-        
+        scope = parameters.containsKey("scope") ? parameters.get("scope").get(0) : "subtree";
+
         String searchBase = getSearchBase(rdn);
         SearchControls searchControls = Ldap.getSearchControls(parameters);
         results = ldapContext.search(searchBase, filter, searchControls);
+        if (results.hasMoreElements()) {
+          records = new ArrayList<>();
+          while (results.hasMore()) {
+            SearchResult result = results.next();
+            records.add(Maps.toMap(result.getNameInNamespace(), result.getAttributes()));
+          }
+        }
       }
 
-      content = Json.renderSearch(Ldap.getLdapHost(
-        Ldap.getContextInfo(ldapContext, Context.PROVIDER_URL)), 
-        Ldap.getContextInfo(ldapContext, Context.SECURITY_PRINCIPAL), rdn, 
-        filter, attrs, scope, results).getBytes();
+      Map<String, Object> data = new HashMap<>();
+      data.put("connection", Settings.getConnectionSettingsAsMap(Settings.getActiveConnectionName()));
+      Map<String, Object> params = new HashMap<>();
+      if (!Strings.isNullOrEmpty(scope)) {
+        params.put("searchScope", scope);
+      }
+      if (!Strings.isNullOrEmpty(filter)) {
+        params.put("filter", filter);
+      }
+      if (!Strings.isNullOrEmpty(rdn)) {
+        params.put("rdn", rdn);
+      }
+      if (!attrs.isEmpty()) {
+        params.put("attrs", attrs);
+      }
+
+      if (!params.isEmpty()) {
+        data.put("parameters", params);
+      }
+
+      if (!records.isEmpty()) {
+        data.put("records", records);
+      }
+
+      content = Json.renderObject(data).getBytes();
       Http.sendResponse(exchange, status, content, contentType);
     } catch (NamingException e) {
       throw new RuntimeException(e);
     }
   }
-
 
   private String getSearchBase(String rdn) {
     if (Strings.isNullOrEmpty(rdn)) {

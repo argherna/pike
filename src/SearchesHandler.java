@@ -14,9 +14,8 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 class SearchesHandler implements HttpHandler {
-  
-  private static final Logger LOGGER = Logger.getLogger(
-    SearchesHandler.class.getName());
+
+  private static final Logger LOGGER = Logger.getLogger(SearchesHandler.class.getName());
 
   static final String RDN_SETTING = "rdn";
 
@@ -30,31 +29,27 @@ class SearchesHandler implements HttpHandler {
   public void handle(HttpExchange exchange) throws IOException {
     String method = exchange.getRequestMethod();
     switch (method) {
-      case "DELETE":
-        doDelete(exchange);
-        break;
-      case "GET":
-      case "HEAD":
-        doGet(exchange);
-        break;
-      case "PATCH":
-        doPatch(exchange);
-        break;
-      case "POST":
-        doPost(exchange);
-        break;
-      default:
-        Map<String, List<String>> responseHeaders = new HashMap<>();
-        Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
-        Http.addContentTypeResponseHeaders(responseHeaders, 
-          ContentTypes.TYPES.get("json"));
-        responseHeaders.put("Allow", List.of("DELETE", "GET", "HEAD", "PATCH", 
-          "POST"));
-        byte[] content = Json.renderError(
-          String.format("Method %s not allowed!", method)).getBytes();
-        Http.sendResponse(exchange, HttpStatus.METHOD_NOT_ALLOWED, content, 
-          responseHeaders);
-        return;
+    case "DELETE":
+      doDelete(exchange);
+      break;
+    case "GET":
+    case "HEAD":
+      doGet(exchange);
+      break;
+    case "PATCH":
+      doPatch(exchange);
+      break;
+    case "POST":
+      doPost(exchange);
+      break;
+    default:
+      Map<String, List<String>> responseHeaders = new HashMap<>();
+      Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
+      Http.addContentTypeResponseHeaders(responseHeaders, ContentTypes.TYPES.get("json"));
+      responseHeaders.put("Allow", List.of("DELETE", "GET", "HEAD", "PATCH", "POST"));
+      byte[] content = Json.renderObject(Map.of("error", String.format("Method %s not allowed!", method))).getBytes();
+      Http.sendResponse(exchange, HttpStatus.METHOD_NOT_ALLOWED, content, responseHeaders);
+      return;
     }
   }
 
@@ -67,8 +62,7 @@ class SearchesHandler implements HttpHandler {
     byte[] content = new byte[0];
     HttpStatus status = HttpStatus.NO_CONTENT;
     if (name.equals(contextPath)) {
-      Http.addContentTypeResponseHeaders(responseHeaders, 
-        ContentTypes.TYPES.get("json"));
+      Http.addContentTypeResponseHeaders(responseHeaders, ContentTypes.TYPES.get("json"));
       status = HttpStatus.BAD_REQUEST;
       responseBody.put("error", "Saved search to delete must be in the path!");
       content = Json.renderObject(responseBody).getBytes();
@@ -76,8 +70,7 @@ class SearchesHandler implements HttpHandler {
       String prefNodeName = preferenceNodeName(name);
       Preferences search = Preferences.userRoot().node(prefNodeName);
       if (getKeys(search).length == 0) {
-        Http.addContentTypeResponseHeaders(responseHeaders, 
-          ContentTypes.TYPES.get("json"));
+        Http.addContentTypeResponseHeaders(responseHeaders, ContentTypes.TYPES.get("json"));
         responseBody.put("error", String.format("%s search not found!", name));
         content = Json.renderObject(responseBody).getBytes();
         status = HttpStatus.NOT_FOUND;
@@ -93,21 +86,19 @@ class SearchesHandler implements HttpHandler {
     }
     Http.sendResponse(exchange, status, content, responseHeaders);
   }
-  
+
   void doGet(HttpExchange exchange) throws IOException {
     Map<String, Object> responseBody = new HashMap<>();
     Map<String, List<String>> responseHeaders = new HashMap<>();
     Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
-    Http.addContentTypeResponseHeaders(responseHeaders, 
-      ContentTypes.TYPES.get("json"));
+    Http.addContentTypeResponseHeaders(responseHeaders, ContentTypes.TYPES.get("json"));
     String name = Http.getLastPathComponent(exchange.getRequestURI().getRawPath());
     String contextPath = exchange.getHttpContext().getPath().substring(1);
     byte[] content = new byte[0];
     HttpStatus status = HttpStatus.OK;
     if (name.equals(contextPath)) {
       Preferences searches = Preferences.userRoot().node(searchesNodeName());
-      content = Json.renderListValues(
-        Arrays.asList(getChildrenNames(searches))).getBytes();
+      content = Json.renderList(Arrays.asList(getChildrenNames(searches))).getBytes();
     } else {
       String prefNodeName = preferenceNodeName(name);
       Preferences search = Preferences.userRoot().node(prefNodeName);
@@ -139,7 +130,7 @@ class SearchesHandler implements HttpHandler {
     }
     Http.sendResponse(exchange, status, content, responseHeaders);
   }
-  
+
   void doPatch(HttpExchange exchange) throws IOException {
     String name = Http.getLastPathComponent(exchange.getRequestURI().getRawPath());
     String contextPath = exchange.getHttpContext().getPath().substring(1);
@@ -148,39 +139,34 @@ class SearchesHandler implements HttpHandler {
     Map<String, Object> responseBody = new HashMap<>();
     HttpStatus status = HttpStatus.NO_CONTENT;
     if (name.equals(contextPath)) {
-      Http.addContentTypeResponseHeaders(responseHeaders, 
-        ContentTypes.TYPES.get("json"));
+      Http.addContentTypeResponseHeaders(responseHeaders, ContentTypes.TYPES.get("json"));
       responseBody.put("error", "\"name\" for settings to update not given!");
       content = Json.renderObject(responseBody).getBytes();
       status = HttpStatus.BAD_REQUEST;
     } else {
-      Map<String, Object> params = Json.marshal(
-        new String(exchange.getRequestBody().readAllBytes()));
+      Map<String, Object> params = Json.marshal(new String(exchange.getRequestBody().readAllBytes()));
       updateSavedSearch(name, params);
     }
 
     Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
     Http.sendResponse(exchange, status, content, responseHeaders);
   }
-  
+
   void doPost(HttpExchange exchange) throws IOException {
-    Map<String, Object> params = Json.marshal(
-      new String(exchange.getRequestBody().readAllBytes()));
+    Map<String, Object> params = Json.marshal(new String(exchange.getRequestBody().readAllBytes()));
     byte[] content = new byte[0];
     HttpStatus status = HttpStatus.CREATED;
     Map<String, List<String>> responseHeaders = new HashMap<>();
     Map<String, Object> responseBody = new HashMap<>();
     if (!params.containsKey("name")) {
-      Http.addContentTypeResponseHeaders(responseHeaders, 
-        ContentTypes.TYPES.get("json"));
+      Http.addContentTypeResponseHeaders(responseHeaders, ContentTypes.TYPES.get("json"));
       responseBody.put("error", "\"name\" for settings not given!");
       content = Json.renderObject(responseBody).getBytes();
       status = HttpStatus.BAD_REQUEST;
     } else {
       String name = params.get("name").toString();
       updateSavedSearch(name, params);
-      responseHeaders.put("Location", List.of(String.format("/%s/%s", 
-        exchange.getHttpContext().getPath(), name)));
+      responseHeaders.put("Location", List.of(String.format("/%s/%s", exchange.getHttpContext().getPath(), name)));
     }
 
     Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
@@ -190,7 +176,7 @@ class SearchesHandler implements HttpHandler {
   private void updateSavedSearch(String name, Map<String, Object> params) {
     String prefNodeName = preferenceNodeName(name);
     Preferences search = Preferences.userRoot().node(prefNodeName);
-    
+
     String rdn = null;
     if (params.containsKey("rdn")) {
       rdn = params.get("rdn").toString();
@@ -219,28 +205,23 @@ class SearchesHandler implements HttpHandler {
     try {
       search.flush();
       search.sync();
-      LOGGER.fine(String.format("Saved search %s: %s=%s, %s=%s, %s=%s, %s=%s",
-        prefNodeName, RDN_SETTING, rdn, FILTER_SETTING, filter, 
-        ATTRS_TO_RETURN_SETTING, attrsToReturn, SCOPE_SETTING, scope));
+      LOGGER.fine(String.format("Saved search %s: %s=%s, %s=%s, %s=%s, %s=%s", prefNodeName, RDN_SETTING, rdn,
+          FILTER_SETTING, filter, ATTRS_TO_RETURN_SETTING, attrsToReturn, SCOPE_SETTING, scope));
     } catch (BackingStoreException e) {
       throw new RuntimeException(e);
     }
   }
 
   private String searchesNodeName() {
-    String searchesNodeName = String.format("%s/%s/searches",
-      Settings.CONNECTION_PREFS_ROOT_NODE_NAME, 
-      Settings.getActiveConnectionName());
-    LOGGER.fine(() -> String.format("searchesNodeName = %s", 
-      searchesNodeName));
+    String searchesNodeName = String.format("%s/%s/searches", Settings.CONNECTION_PREFS_ROOT_NODE_NAME,
+        Settings.getActiveConnectionName());
+    LOGGER.fine(() -> String.format("searchesNodeName = %s", searchesNodeName));
     return searchesNodeName;
   }
 
   private String preferenceNodeName(String searchName) {
-    String preferenceNodeName = String.format("%s/%s", searchesNodeName(),
-      searchName);
-    LOGGER.fine(() -> String.format("preferenceNodeName = %s",
-      preferenceNodeName));
+    String preferenceNodeName = String.format("%s/%s", searchesNodeName(), searchName);
+    LOGGER.fine(() -> String.format("preferenceNodeName = %s", preferenceNodeName));
     return preferenceNodeName;
   }
 
@@ -249,9 +230,7 @@ class SearchesHandler implements HttpHandler {
     try {
       keys = prefs.keys();
     } catch (BackingStoreException e) {
-      LOGGER.log(Level.FINE, 
-        String.format("%s keys not found, returning empty array",
-          prefs.name()), e);
+      LOGGER.log(Level.FINE, String.format("%s keys not found, returning empty array", prefs.name()), e);
       keys = new String[0];
     }
     return keys;
@@ -262,9 +241,7 @@ class SearchesHandler implements HttpHandler {
     try {
       chlidrenNames = prefs.childrenNames();
     } catch (BackingStoreException e) {
-      LOGGER.log(Level.FINE, 
-        String.format("%s children not found, returning empty array",
-          prefs.name()), e);
+      LOGGER.log(Level.FINE, String.format("%s children not found, returning empty array", prefs.name()), e);
       chlidrenNames = new String[0];
     }
     return chlidrenNames;
