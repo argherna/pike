@@ -7,8 +7,7 @@ import com.sun.net.httpserver.HttpExchange;
 
 class InternalServerErrorFilter extends Filter {
 
-  private static final Logger LOGGER = Logger.getLogger(
-    InternalServerErrorFilter.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(InternalServerErrorFilter.class.getName());
 
   @Override
   public String description() {
@@ -16,24 +15,24 @@ class InternalServerErrorFilter extends Filter {
   }
 
   @Override
-  public void doFilter(HttpExchange exchange, Filter.Chain chain) 
-    throws IOException {
+  public void doFilter(HttpExchange exchange, Filter.Chain chain) throws IOException {
     try {
       chain.doFilter(exchange);
     } catch (Exception e) {
-      Throwable cause = e.getCause();
-      Throwable c0 = cause;
-      while (c0 != null) {
-        c0 = cause.getCause();
-        if (c0 != null) {
-          cause = c0;
+      Throwable cause = e;
+      if (e.getCause() != null) {
+        cause = e.getCause();
+        Throwable c0 = cause;
+        while (c0 != null) {
+          c0 = cause.getCause();
+          if (c0 != null) {
+            cause = c0;
+          }
         }
       }
-      LOGGER.log(Level.SEVERE, 
-        "Unhandled exception! Returning Internal Server Error", cause);
+      LOGGER.log(Level.SEVERE, "Unhandled exception! Returning Internal Server Error", cause);
       HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
-      byte[] content = Html.renderError(status, 
-        "An internal error occurred! Check the server logs!").getBytes();
+      byte[] content = Html.renderError(status, "An internal error occurred! Check the server logs!").getBytes();
       Http.sendResponse(exchange, status, content, ContentTypes.TYPES.get("html"));
     }
   }

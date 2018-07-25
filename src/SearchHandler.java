@@ -89,7 +89,7 @@ class SearchHandler extends BaseLdapHandler {
       if (!Strings.isNullOrEmpty(rdn)) {
         params.put("rdn", rdn);
       }
-      if (!attrs.isEmpty()) {
+      if (attrs != null && !attrs.isEmpty()) {
         params.put("attrs", attrs);
       }
 
