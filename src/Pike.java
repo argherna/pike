@@ -28,9 +28,8 @@ import com.sun.net.httpserver.HttpServer;
 
 class Pike {
 
-  static final String SERVER_STRING = String.format("pike/Java %s", 
-    System.getProperty("java.version"));
-  
+  static final String SERVER_STRING = String.format("pike/Java %s", System.getProperty("java.version"));
+
   private static final int DEFAULT_HTTP_SERVER_PORT = 8085;
 
   private static final Logger LOGGER = Logger.getLogger(Pike.class.getName());
@@ -49,80 +48,79 @@ class Pike {
     while (argIdx < args.length) {
       String arg = args[argIdx];
       switch (arg) {
-        case "-D":
-        case "--delete-all-connections":
-          try {
-            deleteAllConnections();
-            System.exit(0);
-          } catch (BackingStoreException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-          }
-        case "-d":
-        case "--delete-connection":
-          connName = args[++argIdx];
-          try {
-            deleteConnection(connName);
-            System.exit(0);
-          } catch (BackingStoreException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-          }
-        case "-h":
-        case "--help":
-          showUsageAndExit(2);
-          break;
-        case "-i":
-        case "--import-connections":
-          filename = args[++argIdx];
-          try {
-            importConnections(filename);
-            System.exit(0);
-          } catch (IOException | InvalidPreferencesFormatException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-          }
-        case "-l":
-        case "--list-connections":
-          listConnections();
+      case "-D":
+      case "--delete-all-connections":
+        try {
+          deleteAllConnections();
           System.exit(0);
-        case "-X":
-        case "--export-all-connections":
+        } catch (BackingStoreException e) {
+          System.err.println(e.getMessage());
+          System.exit(1);
+        }
+      case "-d":
+      case "--delete-connection":
+        connName = args[++argIdx];
+        try {
+          deleteConnection(connName);
+          System.exit(0);
+        } catch (BackingStoreException e) {
+          System.err.println(e.getMessage());
+          System.exit(1);
+        }
+      case "-h":
+      case "--help":
+        showUsageAndExit(2);
+        break;
+      case "-i":
+      case "--import-connections":
+        filename = args[++argIdx];
+        try {
+          importConnections(filename);
+          System.exit(0);
+        } catch (IOException | InvalidPreferencesFormatException e) {
+          System.err.println(e.getMessage());
+          System.exit(1);
+        }
+      case "-l":
+      case "--list-connections":
+        listConnections();
+        System.exit(0);
+      case "-X":
+      case "--export-all-connections":
+        try {
+          exportAll(System.out);
+          System.exit(0);
+        } catch (IOException | BackingStoreException e) {
+          System.err.println(e.getMessage());
+          System.exit(1);
+        }
+        break;
+      case "-x":
+      case "--export-connection":
+        connName = args[++argIdx];
+        try {
+          export(connName, System.out);
+          System.exit(0);
+        } catch (IOException | BackingStoreException e) {
+          System.err.println(e.getMessage());
+          System.exit(1);
+        }
+      default:
+        if (arg.startsWith("-")) {
+          System.err.printf("Unknown option %s%n", arg);
+          showUsageAndExit(1);
+        } else {
           try {
-            exportAll(System.out);
-            System.exit(0);
-          } catch (IOException | BackingStoreException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
+            port = Integer.valueOf(arg);
+          } catch (NumberFormatException e) {
+            LOGGER.config(() -> {
+              return String.format("%s is not a valid port number, defaulting to %d%n", args[0],
+                  DEFAULT_HTTP_SERVER_PORT);
+            });
+            port = DEFAULT_HTTP_SERVER_PORT;
           }
-          break;
-        case "-x":
-        case "--export-connection":
-          connName = args[++argIdx];
-          try {
-            export(connName, System.out);
-            System.exit(0);
-          } catch (IOException | BackingStoreException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-          }
-        default:
-          if (arg.startsWith("-")) {
-            System.err.printf("Unknown option %s%n", arg);
-            showUsageAndExit(1);
-          } else {
-            try {
-              port = Integer.valueOf(arg);
-            } catch (NumberFormatException e) {
-              LOGGER.config(() -> {
-                return String.format(
-                  "%s is not a valid port number, defaulting to %d%n",
-                  args[0], DEFAULT_HTTP_SERVER_PORT);
-              });
-              port = DEFAULT_HTTP_SERVER_PORT;
-            }
-          }
-          break;
+        }
+        break;
       }
       argIdx++;
     }
@@ -131,43 +129,30 @@ class Pike {
       final Pike pike = new Pike(port);
       HttpHandler searchHandler = new SearchHandler();
       HttpHandler staticResourceHandler = new StaticResourceHandler();
-      
+
       Filter faviconFilter = new FaviconFilter();
       Filter internalServerErrorFilter = new InternalServerErrorFilter();
       Filter jsonInFilter = new JsonInFilter();
-      Filter logRequestFilter = new LogRequestFilter();
       Filter notModifiedFilter = new NotModifiedFilter();
 
-      pike.addHandler("/", searchHandler, 
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter, 
-          internalServerErrorFilter));
+      pike.addHandler("/", searchHandler, List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       pike.addHandler("/connection", new ConnectionHandler(),
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter, 
-          internalServerErrorFilter));
+          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       pike.addHandler("/connections", new ConnectionsHandler(),
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter, 
-          internalServerErrorFilter));
+          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       pike.addHandler("/css", staticResourceHandler,
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter, 
-          internalServerErrorFilter));
+          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       pike.addHandler("/error", new ErrorHandler(),
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter,  
-          internalServerErrorFilter));
+          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       pike.addHandler("/js", staticResourceHandler,
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter, 
-          internalServerErrorFilter));
+          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       pike.addHandler("/record", new RecordViewHandler(),
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter, 
-          internalServerErrorFilter));
-      pike.addHandler("/search", searchHandler,
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter, 
-          internalServerErrorFilter));
+          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
+      pike.addHandler("/search", searchHandler, List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       pike.addHandler("/searches", new SearchesHandler(),
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter, jsonInFilter, 
-          internalServerErrorFilter));
-      pike.addHandler("/settings", new SettingsHandler(), 
-        List.of(logRequestFilter, notModifiedFilter, faviconFilter, 
-          internalServerErrorFilter));
+          List.of(notModifiedFilter, faviconFilter, jsonInFilter, internalServerErrorFilter));
+      pike.addHandler("/settings", new SettingsHandler(),
+          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
@@ -181,29 +166,23 @@ class Pike {
     }
   }
 
-  static LdapContext activate(String connectionName) 
-    throws BackingStoreException, IOException, NamingException,
-    NoSuchAlgorithmException, CertificateException, KeyStoreException,
-    UnrecoverableKeyException {
+  static LdapContext activate(String connectionName) throws BackingStoreException, IOException, NamingException,
+      NoSuchAlgorithmException, CertificateException, KeyStoreException, UnrecoverableKeyException {
     LdapContext active = ldapContexts.get(connectionName);
     if (active == null) {
       active = Ldap.createLdapContext(connectionName);
       ldapContexts.put(connectionName, active);
     }
-    Preferences pikeRoot = Preferences.userRoot()
-      .node(Settings.PREFERENCES_ROOT_NODE_NAME);
+    Preferences pikeRoot = Preferences.userRoot().node(Settings.PREFERENCES_ROOT_NODE_NAME);
     pikeRoot.put(Settings.ACTIVE_CONN_NAME_SETTING, connectionName);
     pikeRoot.flush();
     pikeRoot.sync();
-    LOGGER.fine(() -> 
-      String.format("%s is the active LDAP connection", connectionName)
-    );
+    LOGGER.fine(() -> String.format("%s is the active LDAP connection", connectionName));
     return active;
   }
 
-  static LdapContext getActiveLdapContext() throws IOException, 
-    NamingException, NoSuchAlgorithmException, CertificateException,
-    KeyStoreException, UnrecoverableKeyException {
+  static LdapContext getActiveLdapContext() throws IOException, NamingException, NoSuchAlgorithmException,
+      CertificateException, KeyStoreException, UnrecoverableKeyException {
     LdapContext active = null;
     String activeConnectionName = Settings.getActiveConnectionName();
     if (!activeConnectionName.isEmpty()) {
@@ -219,65 +198,55 @@ class Pike {
 
   static String getActiveBaseDn() {
     String activeConnectionName = Settings.getActiveConnectionName();
-    String activeBaseDn = Settings.getConnectionSettings(activeConnectionName)
-      .get(Settings.BASE_DN_SETTING, "");
+    String activeBaseDn = Settings.getConnectionSettings(activeConnectionName).get(Settings.BASE_DN_SETTING, "");
     return activeBaseDn;
   }
 
-  static void delete(String connectionName) throws NamingException,
-    BackingStoreException {
+  static void delete(String connectionName) throws NamingException, BackingStoreException {
     LdapContext toDelete = ldapContexts.remove(connectionName);
     if (toDelete != null) {
       toDelete.close();
       LOGGER.info(() -> String.format("Deleted %s", connectionName));
     }
     deleteConnection(connectionName);
-    LOGGER.info(
-      String.format("Deleted connection settings for %s", connectionName));
+    LOGGER.info(String.format("Deleted connection settings for %s", connectionName));
     String activeConnectionName = Settings.getActiveConnectionName();
     if (activeConnectionName.equals(connectionName)) {
-      Preferences pikeRoot = Preferences.userRoot()
-        .node(Settings.PREFERENCES_ROOT_NODE_NAME);
+      Preferences pikeRoot = Preferences.userRoot().node(Settings.PREFERENCES_ROOT_NODE_NAME);
       pikeRoot.remove(Settings.ACTIVE_CONN_NAME_SETTING);
       pikeRoot.flush();
     }
   }
 
   private static void deleteAllConnections() throws BackingStoreException {
-    Preferences connections = Preferences.userRoot()
-      .node(Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
+    Preferences connections = Preferences.userRoot().node(Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
     connections.removeNode();
     connections.flush();
   }
 
-  private static void deleteConnection(String name) 
-    throws BackingStoreException {
+  private static void deleteConnection(String name) throws BackingStoreException {
     Preferences connection = Settings.getConnectionSettings(name);
     connection.removeNode();
     connection.flush();
   }
 
-  private static void export(String name, PrintStream out) 
-    throws BackingStoreException, IOException {
+  private static void export(String name, PrintStream out) throws BackingStoreException, IOException {
     byte[] prefs = Settings.exportConnectionSettings(name);
     out.print(new String(prefs));
   }
 
-  private static void exportAll(PrintStream out) 
-    throws BackingStoreException, IOException {
+  private static void exportAll(PrintStream out) throws BackingStoreException, IOException {
     byte[] prefs = Settings.exportAllConnectionSettings();
     out.print(new String(prefs));
   }
 
-  private static void importConnections(String filename) 
-    throws IOException, InvalidPreferencesFormatException {
+  private static void importConnections(String filename) throws IOException, InvalidPreferencesFormatException {
     InputStream is = new FileInputStream(filename);
     Settings.importSettings(is);
   }
 
   private static void listConnections() {
-    Preferences connections = Preferences.userRoot()
-      .node(Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
+    Preferences connections = Preferences.userRoot().node(Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
     try {
       String[] children = connections.childrenNames();
       for (String child : children) {
@@ -300,8 +269,8 @@ class Pike {
     System.err.println();
     System.err.println("Arguments:");
     System.err.println();
-    System.err.println("  port             port the server will listen on (default is " 
-      + DEFAULT_HTTP_SERVER_PORT + ")");
+    System.err
+        .println("  port             port the server will listen on (default is " + DEFAULT_HTTP_SERVER_PORT + ")");
     System.err.println();
     System.err.println("Options:");
     System.err.println();
@@ -318,15 +287,14 @@ class Pike {
     System.err.println("                   Export all connection settings and exit");
     System.err.println("  -x <conn-name>, --export-connections <conn-name>");
     System.err.println("                   Export connection named <conn-name> and exit");
-  }  
+  }
 
   Pike(int port) throws IOException {
     httpServer = HttpServer.create(new InetSocketAddress(port), 0);
   }
 
   void addHandler(String path, HttpHandler handler, List<Filter> filters) {
-    LOGGER.config(() -> String.format("Registering %s with %s", path,
-        handler.getClass().getSimpleName()));
+    LOGGER.config(() -> String.format("Registering %s with %s", path, handler.getClass().getSimpleName()));
     HttpContext context = httpServer.createContext(path);
     List<Filter> contextFilters = context.getFilters();
     contextFilters.addAll(filters);
@@ -337,13 +305,10 @@ class Pike {
   void serveHttp() {
     LOGGER.info("Starting HTTP server...");
     for (HttpContext context : httpContexts) {
-      LOGGER.config(() -> 
-        String.format("Server ready at http://localhost:%1$d%2$s", 
-          httpServer.getAddress().getPort(), context.getPath())
-      );
+      LOGGER.config(() -> String.format("Server ready at http://localhost:%1$d%2$s", httpServer.getAddress().getPort(),
+          context.getPath()));
     }
-    LOGGER.info(() -> String.format("%s started under PID %d", 
-      Pike.class.getName(), ProcessHandle.current().pid()));
+    LOGGER.info(() -> String.format("%s started under PID %d", Pike.class.getName(), ProcessHandle.current().pid()));
     httpServer.start();
   }
 
@@ -353,18 +318,15 @@ class Pike {
       if (ldapContext != null) {
         try {
           ldapContext.close();
-          LOGGER.info(String.format("Removed LDAP connection %s.", 
-            connectionName));
+          LOGGER.info(String.format("Removed LDAP connection %s.", connectionName));
         } catch (NamingException e) {
-          LOGGER.log(Level.WARNING, "Problem closing LdapContext on shutdown!",
-            e);
+          LOGGER.log(Level.WARNING, "Problem closing LdapContext on shutdown!", e);
         }
       }
     }
 
     httpContexts.stream().forEach(ctx -> {
-      LOGGER.info(String.format("Removing %s:%s", 
-        ctx.getHandler().getClass().getSimpleName(), ctx.getPath()));
+      LOGGER.info(String.format("Removing %s:%s", ctx.getHandler().getClass().getSimpleName(), ctx.getPath()));
       httpServer.removeContext(ctx);
     });
     LOGGER.warning("Stopping HTTP server...");
