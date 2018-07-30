@@ -43,3 +43,7 @@ tmp/
 # generated file listings #
 sourcefiles.*
 classfiles.*
+
+# Makefiles (at least for now) #
+Makefile
+Makefile.*
