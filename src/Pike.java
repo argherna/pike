@@ -294,7 +294,6 @@ class Pike {
   }
 
   void addHandler(String path, HttpHandler handler, List<Filter> filters) {
-    LOGGER.config(() -> String.format("Registering %s with %s", path, handler.getClass().getSimpleName()));
     HttpContext context = httpServer.createContext(path);
     List<Filter> contextFilters = context.getFilters();
     contextFilters.addAll(filters);
@@ -304,10 +303,6 @@ class Pike {
 
   void serveHttp() {
     LOGGER.info("Starting HTTP server...");
-    for (HttpContext context : httpContexts) {
-      LOGGER.config(() -> String.format("Server ready at http://localhost:%1$d%2$s", httpServer.getAddress().getPort(),
-          context.getPath()));
-    }
     LOGGER.info(() -> String.format("%s started under PID %d", Pike.class.getName(), ProcessHandle.current().pid()));
     httpServer.start();
   }
