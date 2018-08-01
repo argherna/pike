@@ -65,7 +65,6 @@ class ConnectionHandler implements HttpHandler {
     String contentType = ContentTypes.TYPES.get("json");
     HttpStatus status = HttpStatus.OK;
     if (!name.isEmpty()) {
-      Preferences connection = Settings.getConnectionSettings(name);
       try {
         content = Json.renderObject(Settings.getConnectionSettingsAsMap(name)).getBytes();
       } catch (Exception e) {
