@@ -1,5 +1,6 @@
+package com.github.argherna.pike;
+
 import java.io.IOException;
-import java.net.URI;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +40,7 @@ class SearchHandler extends BaseLdapHandler {
 
   @Override
   String getHtmlTemplateName() {
-    return "templates/search.html";
+    return "/templates/search.html";
   }
 
   @Override

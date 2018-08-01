@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;

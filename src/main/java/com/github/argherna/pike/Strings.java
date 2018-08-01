@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 final class Strings {
 
   private Strings() {

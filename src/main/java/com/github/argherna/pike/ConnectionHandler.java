@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -53,7 +55,7 @@ class ConnectionHandler implements HttpHandler {
   }
 
   private void doGetHtml(HttpExchange exchange) throws IOException {
-    Http.sendResponse(exchange, HttpStatus.OK, IO.loadResourceFromClasspath("templates/connection.html"),
+    Http.sendResponse(exchange, HttpStatus.OK, IO.loadResourceFromClasspath("/templates/connection.html"),
         ContentTypes.TYPES.get("html"));
   }
 

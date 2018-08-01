@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.prefs.BackingStoreException;
@@ -32,7 +34,7 @@ class ConnectionsHandler implements HttpHandler {
     String path = exchange.getRequestURI().getRawPath();
     String handlerPath = exchange.getHttpContext().getPath();
     if (path.endsWith(handlerPath)) {
-      content = IO.loadResourceFromClasspath("templates/connections.html");
+      content = IO.loadResourceFromClasspath("/templates/connections.html");
     } else if (path.endsWith("settings")) {
       contentType = ContentTypes.TYPES.get("json");
       content = Json

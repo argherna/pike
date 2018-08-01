@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.io.IOException;
 import java.net.URI;
 import java.security.KeyStoreException;

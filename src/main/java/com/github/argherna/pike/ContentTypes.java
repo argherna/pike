@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.util.Map;
 
 class ContentTypes {

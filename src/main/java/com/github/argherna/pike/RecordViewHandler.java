@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +15,7 @@ class RecordViewHandler extends BaseLdapHandler {
 
   @Override
   String getHtmlTemplateName() {
-    return "templates/record.html";
+    return "/templates/record.html";
   }
 
   @Override

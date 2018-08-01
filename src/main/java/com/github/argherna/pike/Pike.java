@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -263,7 +265,7 @@ class Pike {
   }
 
   private static void showUsage() {
-    System.err.printf("Usage: %s [port]%n", Pike.class.getName());
+    System.err.printf("Usage: %s [port]|[Options]%n", Pike.class.getName());
     System.err.println();
     System.err.println("Serves pages of LDAP entries.");
     System.err.println();
@@ -302,8 +304,7 @@ class Pike {
   }
 
   void serveHttp() {
-    LOGGER.info("Starting HTTP server...");
-    LOGGER.info(() -> String.format("%s started under PID %d", Pike.class.getName(), ProcessHandle.current().pid()));
+    LOGGER.info(() -> String.format("%s running with PID %d", Pike.class.getName(), ProcessHandle.current().pid()));
     httpServer.start();
   }
 

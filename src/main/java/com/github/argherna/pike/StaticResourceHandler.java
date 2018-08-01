@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.io.IOException;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -10,8 +12,7 @@ class StaticResourceHandler implements HttpHandler {
     HttpStatus status = HttpStatus.OK;
     String path = exchange.getRequestURI().getPath();
     String contentType = ContentTypes.TYPES.get(getFileExtension(path));
-    byte[] content = path.startsWith("/") ? IO.loadResourceFromClasspath(
-      path.substring(1)) : IO.loadResourceFromClasspath(path);
+    byte[] content = IO.loadResourceFromClasspath(path);
     if (content.length == 0) {
       status = HttpStatus.NOT_FOUND;
       content = Html.renderError(status, String.format(

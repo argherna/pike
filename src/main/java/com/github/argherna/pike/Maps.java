@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

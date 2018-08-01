@@ -1,12 +1,13 @@
 # pike
 
-An HTTP-based LDAP browser intended for a single-user or a small team working on a software development project that needs to browse a directory. Pike is built with Java-10 and requires at least Java-9 to run.
+An HTTP-based LDAP browser intended for a single-user or a small team working on a software development project that needs to browse a directory. Pike requires Java-10 to build and run.
 
 ## Building
 
-Set whatever compiler options you like in `javac.opts`, except leave the `-d bin` option alone since that's where the source files are compiled to. Run the build script and it'll be built:
 
-    ./build.sh
+This project uses [Maven](https://maven.apache.org/) as its build system. From the project's root directory, run the command below and it will be built.
+
+    mvn clean install
 
 ## Running
 
@@ -19,7 +20,7 @@ Logging is based on JDK logging and output to the console by default. You can se
 Arguments & options can be supplied on the command line to run the server:
 
 ```
-Usage: Pike [port]
+Usage: com.github.argherna.pike.Pike [port]|[Options]
 
 Serves pages of LDAP entries.
 

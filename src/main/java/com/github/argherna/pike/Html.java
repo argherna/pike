@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 import java.io.IOException;
 import java.util.Formatter;
 
@@ -23,12 +25,12 @@ final class Html {
      */ 
 
     try (Formatter f = new Formatter(startRender())) {
-      f.format(IO.loadUtf8ResourceFromClasspath("templates/error-head.html"), 
+      f.format(IO.loadUtf8ResourceFromClasspath("/templates/error-head.html"), 
         status.getStatusCode(), status.getMessage());
       headToBody(f.out());
       
       f.format(IO.loadUtf8ResourceFromClasspath(
-        "templates/error-body.html"), status.getMessage(), text);
+        "/templates/error-body.html"), status.getMessage(), text);
       
       renderFooter(f, hostname, authentication);
       endRender(f.out());
@@ -47,13 +49,13 @@ final class Html {
     // There aren't any parameters in this boilerplate, so append it to
     // the given buffer that (hopefully) came from a Formatter.
     buffer.append(IO.loadUtf8ResourceFromClasspath(
-      "templates/basedoc-head-to-body-bp.html"));
+      "/templates/basedoc-head-to-body-bp.html"));
   }
 
   private static void endRender(Appendable buffer) throws IOException {
     // Append boilerplate to the end of the document.
     buffer.append(IO.loadUtf8ResourceFromClasspath(
-        "templates/basedoc-close-bp.html"));
+        "/templates/basedoc-close-bp.html"));
   }
   
   private static Formatter renderFooter(Formatter f, String hostname, String authentication)
@@ -61,7 +63,7 @@ final class Html {
     if (!Strings.isNullOrEmpty(hostname) && 
       !Strings.isNullOrEmpty(authentication)) {
       return f.format(IO.loadUtf8ResourceFromClasspath(
-        "templates/basedoc-footer.html"), hostname, authentication);
+        "/templates/basedoc-footer.html"), hostname, authentication);
     } else {
       return f;
     }

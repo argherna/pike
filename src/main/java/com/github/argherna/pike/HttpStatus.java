@@ -1,3 +1,5 @@
+package com.github.argherna.pike;
+
 enum HttpStatus {
 
   OK(200, "OK"),
