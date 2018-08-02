@@ -45,7 +45,6 @@ class SearchesHandler implements HttpHandler {
       break;
     default:
       Map<String, List<String>> responseHeaders = new HashMap<>();
-      Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
       Http.addContentTypeResponseHeaders(responseHeaders, ContentTypes.TYPES.get("json"));
       responseHeaders.put("Allow", List.of("DELETE", "GET", "HEAD", "PATCH", "POST"));
       byte[] content = Json.renderObject(Map.of("error", String.format("Method %s not allowed!", method))).getBytes();
@@ -57,7 +56,6 @@ class SearchesHandler implements HttpHandler {
   void doDelete(HttpExchange exchange) throws IOException {
     Map<String, Object> responseBody = new HashMap<>();
     Map<String, List<String>> responseHeaders = new HashMap<>();
-    Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
     String name = Http.getLastPathComponent(exchange.getRequestURI().getRawPath());
     String contextPath = exchange.getHttpContext().getPath().substring(1);
     byte[] content = new byte[0];
@@ -91,7 +89,6 @@ class SearchesHandler implements HttpHandler {
   void doGet(HttpExchange exchange) throws IOException {
     Map<String, Object> responseBody = new HashMap<>();
     Map<String, List<String>> responseHeaders = new HashMap<>();
-    Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
     Http.addContentTypeResponseHeaders(responseHeaders, ContentTypes.TYPES.get("json"));
     String name = Http.getLastPathComponent(exchange.getRequestURI().getRawPath());
     String contextPath = exchange.getHttpContext().getPath().substring(1);
@@ -149,7 +146,6 @@ class SearchesHandler implements HttpHandler {
       updateSavedSearch(name, params);
     }
 
-    Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
     Http.sendResponse(exchange, status, content, responseHeaders);
   }
 
@@ -170,7 +166,6 @@ class SearchesHandler implements HttpHandler {
       responseHeaders.put("Location", List.of(String.format("/%s/%s", exchange.getHttpContext().getPath(), name)));
     }
 
-    Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
     Http.sendResponse(exchange, status, content, responseHeaders);
   }
 

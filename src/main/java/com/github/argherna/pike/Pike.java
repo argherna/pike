@@ -30,8 +30,6 @@ import com.sun.net.httpserver.HttpServer;
 
 class Pike {
 
-  static final String SERVER_STRING = String.format("pike/Java %s", System.getProperty("java.version"));
-
   private static final int DEFAULT_HTTP_SERVER_PORT = 8085;
 
   private static final Logger LOGGER = Logger.getLogger(Pike.class.getName());
@@ -139,22 +137,22 @@ class Pike {
 
       pike.addHandler("/", searchHandler, List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       pike.addHandler("/connection", new ConnectionHandler(),
-          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
+          List.of(internalServerErrorFilter, notModifiedFilter, faviconFilter));
       pike.addHandler("/connections", new ConnectionsHandler(),
-          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
+          List.of(internalServerErrorFilter, notModifiedFilter, faviconFilter));
       pike.addHandler("/css", staticResourceHandler,
-          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
+          List.of(internalServerErrorFilter, notModifiedFilter, faviconFilter));
       pike.addHandler("/error", new ErrorHandler(),
-          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
+          List.of(internalServerErrorFilter, notModifiedFilter, faviconFilter));
       pike.addHandler("/js", staticResourceHandler,
-          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
+          List.of(internalServerErrorFilter, notModifiedFilter, faviconFilter));
       pike.addHandler("/record", new RecordViewHandler(),
-          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
-      pike.addHandler("/search", searchHandler, List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
+          List.of(internalServerErrorFilter, notModifiedFilter, faviconFilter));
+      pike.addHandler("/search", searchHandler, List.of(internalServerErrorFilter, notModifiedFilter, faviconFilter));
       pike.addHandler("/searches", new SearchesHandler(),
-          List.of(notModifiedFilter, faviconFilter, jsonInFilter, internalServerErrorFilter));
+          List.of(internalServerErrorFilter, notModifiedFilter, faviconFilter, jsonInFilter));
       pike.addHandler("/settings", new SettingsHandler(),
-          List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
+          List.of(internalServerErrorFilter, notModifiedFilter, faviconFilter));
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {

@@ -30,7 +30,6 @@ class SettingsHandler implements HttpHandler {
         break;
       default:
         Map<String, List<String>> responseHeaders = new HashMap<>();
-        Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
         Http.addContentTypeResponseHeaders(responseHeaders, 
           ContentTypes.TYPES.get("json"));
         responseHeaders.put("Allow", List.of("GET", "POST"));
@@ -43,7 +42,6 @@ class SettingsHandler implements HttpHandler {
 
   private void doGet(HttpExchange exchange) throws IOException {
     Map<String, List<String>> responseHeaders = new HashMap<>();
-    Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
     String name = Http.getLastPathComponent(exchange.getRequestURI().getRawPath());
     String contextPath = exchange.getHttpContext().getPath().substring(1);
     String contentType = ContentTypes.TYPES.get("xml");

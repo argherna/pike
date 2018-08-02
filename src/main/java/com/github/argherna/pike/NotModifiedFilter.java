@@ -22,29 +22,22 @@ class NotModifiedFilter extends Filter {
 
   private List<String> STATIC_PATHS = List.of("/js", "/css");
 
-  private static final String HTTP_DATE_FORMAT = 
-    "EEE, dd MMM yyyy HH:mm:ss z";
+  private static final String HTTP_DATE_FORMAT = "EEE, dd MMM yyyy HH:mm:ss z";
 
   @Override
   public String description() {
-    return "Generates an ETag header by calculating the checksum of the " +
-      "response body. If an If-None-Match header is sent and the checksum " +
-      "of the body is the same as the value of the header, a 304 status is " +
-      "returned with no content.";
+    return "Generates an ETag header by calculating the checksum of the "
+        + "response body. If an If-None-Match header is sent and the checksum "
+        + "of the body is the same as the value of the header, a 304 status is " + "returned with no content.";
   }
 
   @Override
-  public void doFilter(HttpExchange exchange, Filter.Chain chain)
-    throws IOException {
-    if (exchange.getRequestMethod().equals("GET") || 
-      exchange.getRequestMethod().equals("HEAD")) {
+  public void doFilter(HttpExchange exchange, Filter.Chain chain) throws IOException {
+    if (exchange.getRequestMethod().equals("GET") || exchange.getRequestMethod().equals("HEAD")) {
       if (requestIsForStaticResource(exchange.getRequestURI().getPath())) {
-        String path = exchange.getRequestURI().getPath().startsWith("/") ? 
-            exchange.getRequestURI().getPath().substring(1) : 
-            exchange.getRequestURI().getPath();
+        String path = exchange.getRequestURI().getPath();
         long mTime = IO.lastMTime(path);
-        LastModifiedHttpExchange lastModified = 
-          new LastModifiedHttpExchange(exchange, mTime);
+        LastModifiedHttpExchange lastModified = new LastModifiedHttpExchange(exchange, mTime);
         Headers in = exchange.getRequestHeaders();
         if (in.containsKey("If-Modified-Since")) {
           String ifModifiedSinceValue = in.getFirst("If-Modified-Since");
@@ -168,10 +161,9 @@ class NotModifiedFilter extends Filter {
     }
 
     @Override
-    public void sendResponseHeaders(int rCode, long responseLength) 
-      throws IOException {
-        this.statusCode = rCode;
-        this.responseLength = responseLength;
+    public void sendResponseHeaders(int rCode, long responseLength) throws IOException {
+      this.statusCode = rCode;
+      this.responseLength = responseLength;
     }
 
     @Override
@@ -217,6 +209,7 @@ class NotModifiedFilter extends Filter {
         if (inm.equals(Long.toHexString(checksum.getValue()))) {
           this.statusCode = HttpStatus.NOT_MODIFIED.getStatusCode();
           this.responseLength = -1l;
+          exchange.getResponseHeaders().remove("Content-Type");
         } else {
           setETag(checksum);
         }

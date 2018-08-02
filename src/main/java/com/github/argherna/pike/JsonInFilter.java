@@ -37,7 +37,6 @@ class JsonInFilter extends Filter {
         Map<String, List<String>> responseHeaders = new HashMap<>();
         Http.addContentTypeResponseHeaders(responseHeaders, 
           ContentTypes.TYPES.get("json"));
-        Http.addServerHeaders(responseHeaders, Pike.SERVER_STRING);
         Http.sendResponse(exchange, HttpStatus.BAD_REQUEST, content, 
           ContentTypes.TYPES.get("json"));
       } else {

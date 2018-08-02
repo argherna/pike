@@ -23,7 +23,6 @@ final class Http {
     HttpStatus status, String contentType, String location) 
     throws IOException {
     Map<String, List<String>> responseHeaders = new HashMap<>();
-    addServerHeaders(responseHeaders, Pike.SERVER_STRING);
     addContentTypeResponseHeaders(responseHeaders, contentType);
     responseHeaders.put("Location", List.of(location));
     sendResponse(exchange, status, new byte[0], responseHeaders);
@@ -32,7 +31,6 @@ final class Http {
   static void sendResponse(HttpExchange exchange, HttpStatus status, 
     byte[] content, String contentType) throws IOException {
     Map<String, List<String>> responseHeaders = new HashMap<>();
-    addServerHeaders(responseHeaders, Pike.SERVER_STRING);
     addContentTypeResponseHeaders(responseHeaders, contentType);
     sendResponse(exchange, status, content, responseHeaders);
   }
@@ -77,11 +75,6 @@ final class Http {
       responseHeaders.put("Access-Control-Allow-Headers", 
         List.of("origin, content-type, accept"));
     }
-  }
-
-  static void addServerHeaders(Map<String, List<String>> responseHeaders,
-    String server) {
-    responseHeaders.put("Server", List.of(server));
   }
 
   static Map<String, List<String>> queryToMap(String rawQuery) {

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.logging.Logger;
+import java.util.zip.ZipFile;
 
 final class IO {
 
@@ -59,20 +60,32 @@ final class IO {
 
   static long lastMTime(String path) throws IOException {
     long lastModifiedTime = -1l;
+    LOGGER.finer(() -> path);
     try {
       if (IO.class.getResource(path) != null) {
         URI fileUri = IO.class.getResource(path).toURI();
-        File resource = null;
+        LOGGER.finer(() -> "Reading last MTime on " + fileUri.toASCIIString());
         if (fileUri.toASCIIString().startsWith("jar:")) {
-          resource = new File(fileUri.toASCIIString().substring(4));
+          String jarname = fileUri.toASCIIString().split("!")[0].substring("jar:file:".length());
+          LOGGER.finest(() -> "jarfile name = " + jarname);
+          try (ZipFile jar = new ZipFile(new File(jarname))) {
+            String entryname = path.startsWith("/") ? path.substring(1) : path;
+            lastModifiedTime = jar.getEntry(entryname).getTime();
+          } catch (Exception e) {
+            if (e instanceof RuntimeException) {
+              throw (RuntimeException) e;
+            } else {
+              throw new RuntimeException(e);
+            }
+          }
         } else {
-          resource = new File(fileUri);
+          lastModifiedTime = new File(fileUri).lastModified();
         }
-        lastModifiedTime = resource.lastModified();
       }
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);
     }
+    LOGGER.finer("Last Modified Time = " + lastModifiedTime);
     return lastModifiedTime;
   }
 }
