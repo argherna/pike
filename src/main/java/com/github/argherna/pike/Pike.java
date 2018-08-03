@@ -10,10 +10,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
@@ -37,8 +35,6 @@ class Pike {
   private static final Map<String, LdapContext> ldapContexts = new HashMap<>();
 
   private final HttpServer httpServer;
-
-  private final Set<HttpContext> httpContexts = new HashSet<>();
 
   public static void main(String... args) {
     int port = DEFAULT_HTTP_SERVER_PORT;
@@ -298,7 +294,6 @@ class Pike {
     List<Filter> contextFilters = context.getFilters();
     contextFilters.addAll(filters);
     context.setHandler(handler);
-    httpContexts.add(context);
   }
 
   void serveHttp() {
@@ -318,11 +313,6 @@ class Pike {
         }
       }
     }
-
-    httpContexts.stream().forEach(ctx -> {
-      LOGGER.info(String.format("Removing %s:%s", ctx.getHandler().getClass().getSimpleName(), ctx.getPath()));
-      httpServer.removeContext(ctx);
-    });
     LOGGER.warning("Stopping HTTP server...");
     httpServer.stop(0);
   }
