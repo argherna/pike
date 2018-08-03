@@ -2,13 +2,12 @@ package com.github.argherna.pike;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +15,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.InvalidPreferencesFormatException;
-import java.util.prefs.Preferences;
 
 import javax.naming.NamingException;
 import javax.naming.ldap.LdapContext;
@@ -47,7 +45,7 @@ class Pike {
       case "-D":
       case "--delete-all-connections":
         try {
-          deleteAllConnections();
+          Settings.deleteAllConnections();
           System.exit(0);
         } catch (BackingStoreException e) {
           System.err.println(e.getMessage());
@@ -57,7 +55,7 @@ class Pike {
       case "--delete-connection":
         connName = args[++argIdx];
         try {
-          deleteConnection(connName);
+          Settings.deleteSingleConnection(connName);
           System.exit(0);
         } catch (BackingStoreException e) {
           System.err.println(e.getMessage());
@@ -71,7 +69,7 @@ class Pike {
       case "--import-connections":
         filename = args[++argIdx];
         try {
-          importConnections(filename);
+          Settings.importSettings(new FileInputStream(filename));
           System.exit(0);
         } catch (IOException | InvalidPreferencesFormatException e) {
           System.err.println(e.getMessage());
@@ -79,12 +77,17 @@ class Pike {
         }
       case "-l":
       case "--list-connections":
-        listConnections();
-        System.exit(0);
+        try {
+          Arrays.stream(Settings.getAllConnectionNames()).forEach(System.out::println);
+          System.exit(0);
+        } catch (BackingStoreException e) {
+          System.err.println(e.getMessage());
+          System.exit(1);
+        }
       case "-X":
       case "--export-all-connections":
         try {
-          exportAll(System.out);
+          System.out.println(new String(Settings.exportAllConnectionSettings()));
           System.exit(0);
         } catch (IOException | BackingStoreException e) {
           System.err.println(e.getMessage());
@@ -95,7 +98,7 @@ class Pike {
       case "--export-connection":
         connName = args[++argIdx];
         try {
-          export(connName, System.out);
+          System.out.println(new String(Settings.exportConnectionSettings(connName)));
           System.exit(0);
         } catch (IOException | BackingStoreException e) {
           System.err.println(e.getMessage());
@@ -169,10 +172,7 @@ class Pike {
       active = Ldap.createLdapContext(connectionName);
       ldapContexts.put(connectionName, active);
     }
-    Preferences pikeRoot = Preferences.userRoot().node(Settings.PREFERENCES_ROOT_NODE_NAME);
-    pikeRoot.put(Settings.ACTIVE_CONN_NAME_SETTING, connectionName);
-    pikeRoot.flush();
-    pikeRoot.sync();
+    Settings.setActiveConnectionName(connectionName);
     LOGGER.fine(() -> String.format("%s is the active LDAP connection", connectionName));
     return active;
   }
@@ -204,52 +204,11 @@ class Pike {
       toDelete.close();
       LOGGER.info(() -> String.format("Deleted %s", connectionName));
     }
-    deleteConnection(connectionName);
+    Settings.deleteSingleConnection(connectionName);
     LOGGER.info(String.format("Deleted connection settings for %s", connectionName));
     String activeConnectionName = Settings.getActiveConnectionName();
     if (activeConnectionName.equals(connectionName)) {
-      Preferences pikeRoot = Preferences.userRoot().node(Settings.PREFERENCES_ROOT_NODE_NAME);
-      pikeRoot.remove(Settings.ACTIVE_CONN_NAME_SETTING);
-      pikeRoot.flush();
-    }
-  }
-
-  private static void deleteAllConnections() throws BackingStoreException {
-    Preferences connections = Preferences.userRoot().node(Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
-    connections.removeNode();
-    connections.flush();
-  }
-
-  private static void deleteConnection(String name) throws BackingStoreException {
-    Preferences connection = Settings.getConnectionSettings(name);
-    connection.removeNode();
-    connection.flush();
-  }
-
-  private static void export(String name, PrintStream out) throws BackingStoreException, IOException {
-    byte[] prefs = Settings.exportConnectionSettings(name);
-    out.print(new String(prefs));
-  }
-
-  private static void exportAll(PrintStream out) throws BackingStoreException, IOException {
-    byte[] prefs = Settings.exportAllConnectionSettings();
-    out.print(new String(prefs));
-  }
-
-  private static void importConnections(String filename) throws IOException, InvalidPreferencesFormatException {
-    InputStream is = new FileInputStream(filename);
-    Settings.importSettings(is);
-  }
-
-  private static void listConnections() {
-    Preferences connections = Preferences.userRoot().node(Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
-    try {
-      String[] children = connections.childrenNames();
-      for (String child : children) {
-        System.out.println(child);
-      }
-    } catch (BackingStoreException e) {
-      throw new RuntimeException(e);
+      Settings.unsetActiveConnectionName();
     }
   }
 

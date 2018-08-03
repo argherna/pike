@@ -116,6 +116,10 @@ final class Settings {
     return secretText;
   }
 
+  static String[] getAllConnectionNames() throws BackingStoreException {
+    return Preferences.userRoot().node(CONNECTION_PREFS_ROOT_NODE_NAME).childrenNames();
+  }
+
   static Preferences getConnectionSettings(String name) {
     String prefnodeName = String.format("%s/%s", CONNECTION_PREFS_ROOT_NODE_NAME, name);
     return Preferences.userRoot().node(prefnodeName);
@@ -135,6 +139,31 @@ final class Settings {
 
   static String getActiveConnectionName() {
     return Preferences.userRoot().node(PREFERENCES_ROOT_NODE_NAME).get(ACTIVE_CONN_NAME_SETTING, "");
+  }
+
+  static void setActiveConnectionName(String name) throws BackingStoreException {
+    Preferences activeConnectionName = Preferences.userRoot().node(PREFERENCES_ROOT_NODE_NAME);
+    activeConnectionName.put(ACTIVE_CONN_NAME_SETTING, name);
+    activeConnectionName.flush();
+    activeConnectionName.sync();
+  }
+
+  static void unsetActiveConnectionName() throws BackingStoreException {
+    var activeConnectionName = Preferences.userRoot().node(PREFERENCES_ROOT_NODE_NAME);
+    activeConnectionName.remove(ACTIVE_CONN_NAME_SETTING);
+    activeConnectionName.flush();
+  }
+
+  static void deleteSingleConnection(String name) throws BackingStoreException {
+    var connectionToDelete = getConnectionSettings(name);
+    connectionToDelete.removeNode();
+    connectionToDelete.flush();
+  }
+
+  static void deleteAllConnections() throws BackingStoreException {
+    var connections = Preferences.userRoot().node(CONNECTION_PREFS_ROOT_NODE_NAME);
+    connections.removeNode();
+    connections.flush();
   }
 
   static byte[] exportConnectionSettings(String name) throws IOException, BackingStoreException {
