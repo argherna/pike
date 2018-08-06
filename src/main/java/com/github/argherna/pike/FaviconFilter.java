@@ -15,15 +15,12 @@ class FaviconFilter extends Filter {
   }
 
   @Override
-  public void doFilter(HttpExchange exchange, Filter.Chain chain) 
-    throws IOException {
-    String path = exchange.getRequestURI().getPath();
+  public void doFilter(HttpExchange exchange, Filter.Chain chain) throws IOException {
+    var path = exchange.getRequestURI().getPath();
     if (path.endsWith(FAVICON_PATH)) {
-      HttpStatus status = HttpStatus.NOT_FOUND;
-      byte[] content = Html.renderError(status, 
-        "Server does not have a favicon").getBytes();
-      String contentType = ContentTypes.TYPES.get("html");
-      Http.sendResponse(exchange, status, content, contentType);
+      var status = HttpStatus.NOT_FOUND;
+      var content = Html.renderError(status, "Server does not have a favicon").getBytes();
+      Http.sendResponse(exchange, status, content, ContentTypes.TYPES.get("html"));
     } else {
       chain.doFilter(exchange);
     }

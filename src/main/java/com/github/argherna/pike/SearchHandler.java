@@ -11,11 +11,7 @@ import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Function;
 
-import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
-import javax.naming.directory.SearchControls;
-import javax.naming.directory.SearchResult;
-import javax.naming.ldap.LdapContext;
 
 import com.sun.net.httpserver.HttpExchange;
 
@@ -33,7 +29,7 @@ class SearchHandler extends BaseLdapHandler {
   private static final Map<String, Function<String, List<String>>> PARAM_PROCS;
 
   static {
-    Map<String, Function<String, List<String>>> paramProcs = new HashMap<>();
+    var paramProcs = new HashMap<String, Function<String, List<String>>>();
     paramProcs.put("attr", ATTRS_FUNCTION);
     PARAM_PROCS = Collections.unmodifiableMap(paramProcs);
   }
@@ -45,18 +41,14 @@ class SearchHandler extends BaseLdapHandler {
 
   @Override
   void doJson(HttpExchange exchange) throws IOException {
-    HttpStatus status = HttpStatus.OK;
-    String contentType = ContentTypes.TYPES.get("json");
-    byte[] content = new byte[0];
-    LdapContext ldapContext = getLdapContext();
+    var ldapContext = getLdapContext();
 
-    String rdn = "";
-    String filter = "";
+    var rdn = "";
+    var filter = "";
     List<String> attrs = List.of();
-    String scope = "";
-    String rawQuery = exchange.getRequestURI().getRawQuery();
+    var scope = "";
+    var rawQuery = exchange.getRequestURI().getRawQuery();
     Map<String, List<String>> parameters = new HashMap<>();
-    NamingEnumeration<SearchResult> results = null;
     List<Map<String, Object>> records = List.of();
     try {
       if (rawQuery != null && !rawQuery.isEmpty()) {
@@ -66,21 +58,22 @@ class SearchHandler extends BaseLdapHandler {
         attrs = parameters.get("attr");
         scope = parameters.containsKey("scope") ? parameters.get("scope").get(0) : "subtree";
 
-        String searchBase = getSearchBase(rdn);
-        SearchControls searchControls = Ldap.getSearchControls(parameters);
-        results = ldapContext.search(searchBase, filter, searchControls);
+        var searchBase = getSearchBase(rdn);
+        var searchControls = Ldap.getSearchControls(parameters);
+        var results = ldapContext.search(searchBase, filter, searchControls);
         if (results.hasMoreElements()) {
           records = new ArrayList<>();
           while (results.hasMore()) {
-            SearchResult result = results.next();
+            var result = results.next();
             records.add(Maps.toMap(result.getNameInNamespace(), result.getAttributes()));
           }
         }
       }
 
-      Map<String, Object> data = new HashMap<>();
-      data.put("connection", Settings.getConnectionSettingsAsMap(Settings.getActiveConnectionName()));
-      Map<String, Object> params = new HashMap<>();
+      var data = new HashMap<String, Object>();
+      data.put("connection", Maps.toMap(Settings.getConnectionSettings(Settings.getActiveConnectionName())));
+      
+      var params = new HashMap<String, Object>();
       if (!Strings.isNullOrEmpty(scope)) {
         params.put("searchScope", scope);
       }
@@ -102,8 +95,7 @@ class SearchHandler extends BaseLdapHandler {
         data.put("records", records);
       }
 
-      content = Json.renderObject(data).getBytes();
-      Http.sendResponse(exchange, status, content, contentType);
+      Http.sendResponse(exchange, HttpStatus.OK, Json.renderObject(data).getBytes(), ContentTypes.TYPES.get("json"));
     } catch (NamingException e) {
       throw new RuntimeException(e);
     }
@@ -113,7 +105,7 @@ class SearchHandler extends BaseLdapHandler {
     if (Strings.isNullOrEmpty(rdn)) {
       return Pike.getActiveBaseDn();
     } else {
-      StringJoiner sj = new StringJoiner(",");
+      var sj = new StringJoiner(",");
       sj.add(rdn).add(Pike.getActiveBaseDn());
       return sj.toString();
     }

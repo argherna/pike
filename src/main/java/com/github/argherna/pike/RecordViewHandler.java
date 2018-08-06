@@ -6,8 +6,6 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 import javax.naming.NamingException;
-import javax.naming.directory.Attributes;
-import javax.naming.ldap.LdapContext;
 
 import com.sun.net.httpserver.HttpExchange;
 
@@ -20,26 +18,23 @@ class RecordViewHandler extends BaseLdapHandler {
 
   @Override
   void doJson(HttpExchange exchange) throws IOException {
-    LdapContext ldapContext = getLdapContext();
-    Attributes attributes = null;
-    String dn = getDnFromPath(Http.getLastPathComponent(exchange.getRequestURI().getPath()));
-    String contentType = ContentTypes.TYPES.get("json");
-    HttpStatus status = HttpStatus.OK;
-    byte[] content = new byte[0];
+    var ldapContext = getLdapContext();
+    var dn = getDnFromPath(Http.getLastPathComponent(exchange.getRequestURI().getPath()));
+    var content = new byte[0];
     try {
-      attributes = ldapContext.getAttributes(dn);
-      content = Json
-          .renderObject(Map.of("connection", Settings.getConnectionSettingsAsMap(Settings.getActiveConnectionName()),
-              "record", Maps.toMap(dn, attributes)))
+      var attributes = ldapContext.getAttributes(dn);
+      content = Json.renderObject(
+          Map.of("connection", Maps.toMap(Settings.getConnectionSettings(Settings.getActiveConnectionName())), "record",
+              Maps.toMap(dn, attributes)))
           .getBytes();
     } catch (NamingException e) {
       throw new RuntimeException(e);
     }
-    Http.sendResponse(exchange, status, content, contentType);
+    Http.sendResponse(exchange, HttpStatus.OK, content, ContentTypes.TYPES.get("json"));
   }
 
   private String getDnFromPath(String path) {
-    StringJoiner joiner = new StringJoiner(",");
+    var joiner = new StringJoiner(",");
     List.of(path.split(";")).stream().filter(c -> c.indexOf("=") != -1).forEach(c -> joiner.add(c));
     return joiner.toString();
   }

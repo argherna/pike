@@ -35,15 +35,15 @@ class NotModifiedFilter extends Filter {
   public void doFilter(HttpExchange exchange, Filter.Chain chain) throws IOException {
     if (exchange.getRequestMethod().equals("GET") || exchange.getRequestMethod().equals("HEAD")) {
       if (requestIsForStaticResource(exchange.getRequestURI().getPath())) {
-        String path = exchange.getRequestURI().getPath();
-        long mTime = IO.lastMTime(path);
-        LastModifiedHttpExchange lastModified = new LastModifiedHttpExchange(exchange, mTime);
-        Headers in = exchange.getRequestHeaders();
+        var path = exchange.getRequestURI().getPath();
+        var mTime = IO.lastMTime(path);
+        var lastModified = new LastModifiedHttpExchange(exchange, mTime);
+        var in = exchange.getRequestHeaders();
         if (in.containsKey("If-Modified-Since")) {
-          String ifModifiedSinceValue = in.getFirst("If-Modified-Since");
-          long inTimestamp = 0l;
+          var ifModifiedSinceValue = in.getFirst("If-Modified-Since");
+          var inTimestamp = 0l;
           try {
-            SimpleDateFormat fmt = new SimpleDateFormat(HTTP_DATE_FORMAT);
+            var fmt = new SimpleDateFormat(HTTP_DATE_FORMAT);
             inTimestamp = fmt.parse(ifModifiedSinceValue).getTime();
           } catch (ParseException e) {
             throw new RuntimeException(e);
@@ -59,7 +59,7 @@ class NotModifiedFilter extends Filter {
           lastModified.doResponse();
         }
       } else {
-        ETagHttpExchange etag = new ETagHttpExchange(exchange);
+        var etag = new ETagHttpExchange(exchange);
         chain.doFilter(etag);
         etag.doResponse();
       }
@@ -181,7 +181,7 @@ class NotModifiedFilter extends Filter {
     void send(byte[] content) throws IOException {
       exchange.sendResponseHeaders(statusCode, responseLength);
       if (responseLength > 0l) {
-        try (OutputStream out = exchange.getResponseBody()) {
+        try (var out = exchange.getResponseBody()) {
           out.write(content);
           out.flush();
         }
@@ -199,13 +199,13 @@ class NotModifiedFilter extends Filter {
 
     @Override
     void doResponse() throws IOException {
-      byte[] content = responseBody.toByteArray();
-      Checksum checksum = new CRC32C();
+      var content = responseBody.toByteArray();
+      var checksum = new CRC32C();
       checksum.update(content);
 
-      Headers in = exchange.getRequestHeaders();
+      var in = exchange.getRequestHeaders();
       if (in.containsKey("If-None-Match")) {
-        String inm = in.getFirst("If-None-Match");
+        var inm = in.getFirst("If-None-Match");
         if (inm.equals(Long.toHexString(checksum.getValue()))) {
           this.statusCode = HttpStatus.NOT_MODIFIED.getStatusCode();
           this.responseLength = -1l;
@@ -221,7 +221,7 @@ class NotModifiedFilter extends Filter {
     }
 
     private void setETag(Checksum checksum) {
-      Headers out = exchange.getResponseHeaders();
+      var out = exchange.getResponseHeaders();
 
       // HAHA! I LOVE PUNS!!!!!!
       out.put("ETag", List.of(Long.toHexString(checksum.getValue())));
@@ -240,8 +240,8 @@ class NotModifiedFilter extends Filter {
     @Override
     void doResponse() throws IOException {
       if (responseLength > 0l) {
-        Headers out = exchange.getResponseHeaders();
-        SimpleDateFormat fmt = new SimpleDateFormat(HTTP_DATE_FORMAT);
+        var out = exchange.getResponseHeaders();
+        var fmt = new SimpleDateFormat(HTTP_DATE_FORMAT);
         // OMG@!! THERE IT IS AGAIN!!!! HAAAAAAHAAHAHA!
         out.put("Last-Modified", List.of(fmt.format(mTime)));
       } else {

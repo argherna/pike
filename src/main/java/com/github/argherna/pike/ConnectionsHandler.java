@@ -2,8 +2,6 @@ package com.github.argherna.pike;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.prefs.BackingStoreException;
-import java.util.prefs.Preferences;
 import java.util.stream.Collectors;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -17,14 +15,7 @@ class ConnectionsHandler implements HttpHandler {
     HttpStatus status = HttpStatus.OK;
     String contentType = ContentTypes.TYPES.get("html");
 
-    Preferences connectionSettings = Preferences.userRoot().node(Settings.CONNECTION_PREFS_ROOT_NODE_NAME);
-    String[] connectionNames = new String[0];
-    try {
-      connectionNames = connectionSettings.childrenNames();
-    } catch (BackingStoreException e) {
-      throw new RuntimeException(e);
-    }
-
+    String[] connectionNames = Settings.getAllConnectionNames();
     if (connectionNames.length == 0) {
       status = HttpStatus.TEMPORARY_REDIRECT;
       Http.sendResponseWithLocationNoContent(exchange, status, contentType, "/connection");
@@ -37,10 +28,8 @@ class ConnectionsHandler implements HttpHandler {
       content = IO.loadResourceFromClasspath("/templates/connections.html");
     } else if (path.endsWith("settings")) {
       contentType = ContentTypes.TYPES.get("json");
-      content = Json
-          .renderList(
-              Arrays.stream(connectionNames).map(Settings::getConnectionSettingsAsMap).collect(Collectors.toList()))
-          .getBytes();
+      content = Json.renderList(Arrays.stream(connectionNames).map(n -> Maps.toMap(Settings.getConnectionSettings(n)))
+          .collect(Collectors.toList())).getBytes();
     }
     Http.sendResponse(exchange, status, content, contentType);
   }

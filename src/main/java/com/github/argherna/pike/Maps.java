@@ -1,10 +1,9 @@
 package com.github.argherna.pike;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
@@ -15,9 +14,29 @@ final class Maps {
     // Empty constructor prevents instantiation.
   }
 
+  static Map<String, Object> toMap(Settings.ConnectionSettings connSettings) {
+    return Map
+        .of("name", Strings.nullToEmpty(connSettings.getName()), "ldapUrl",
+            Strings.nullToEmpty(connSettings.getLdapUrl()), "host",
+            Ldap.getLdapHost(Strings.nullToEmpty(connSettings.getLdapUrl())), "baseDn",
+            Strings.nullToEmpty(connSettings.getBaseDn()), "authType", Strings.nullToEmpty(connSettings.getAuthType()),
+            "bindDn", Strings.nullToEmpty(connSettings.getBindDn()), "useStartTls", connSettings.getUseStartTls())
+        .entrySet().stream().filter(e -> e.getValue().toString().length() > 0)
+        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+  }
+
+  static Map<String, Object> toMap(Settings.SearchSettings searchSettings) {
+    return Map
+        .of("name", Strings.nullToEmpty(searchSettings.getName()), "rdn", Strings.nullToEmpty(searchSettings.getRdn()),
+            "filter", Strings.nullToEmpty(searchSettings.getFilter()), "attrsToReturn",
+            searchSettings.getAttrsToReturn(), "scope", Strings.nullToEmpty(searchSettings.getScope()))
+        .entrySet().stream().filter(e -> e.getValue().toString().length() > 0)
+        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+  }
+
   static Map<String, Object> toMap(String dn, Attributes attributes) throws NamingException {
-    List<Map<String, Object>> attributeMaps = new ArrayList<>();
-    NamingEnumeration<? extends Attribute> attributeEnumeration = attributes.getAll();
+    var attributeMaps = new ArrayList<Map<String, Object>>();
+    var attributeEnumeration = attributes.getAll();
     while (attributeEnumeration.hasMore()) {
       attributeMaps.add(toMap(attributeEnumeration.next()));
     }
@@ -25,16 +44,14 @@ final class Maps {
   }
 
   static Map<String, Object> toMap(Attribute attribute) throws NamingException {
-    Map<String, Object> map;
     if (attribute.size() > 1) {
-      List<Object> values = new ArrayList<>();
+      var values = new ArrayList<Object>();
       for (int i = 0; i < attribute.size(); i++) {
         values.add(attribute.get(i));
       }
-      map = Map.of("name", attribute.getID(), "value", values);
+      return Map.of("name", attribute.getID(), "value", values);
     } else {
-      map = Map.of("name", attribute.getID(), "value", attribute.get(0));
+      return Map.of("name", attribute.getID(), "value", attribute.get(0));
     }
-    return map;
   }
 }

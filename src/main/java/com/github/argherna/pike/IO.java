@@ -21,14 +21,14 @@ final class IO {
   }
 
   static String loadUtf8ResourceFromClasspath(String path) throws IOException {
-    byte[] resourceBytes = loadResourceFromClasspath(path);
+    var resourceBytes = loadResourceFromClasspath(path);
     return new String(resourceBytes, Charset.forName("UTF-8"));
   }
 
   static byte[] loadResourceFromClasspath(String path) throws IOException {
     LOGGER.fine(() -> String.format("Loading %s...", path));
     byte[] contents = null;
-    InputStream resource = IO.class.getResourceAsStream(path);
+    var resource = IO.class.getResourceAsStream(path);
     try {
       if (resource == null) {
         LOGGER.fine((() -> String.format(
@@ -46,10 +46,10 @@ final class IO {
   }
 
   static byte[] toByteArray(InputStream in) throws IOException {
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    byte[] buf = new byte[BUF_SZ];
+    var bos = new ByteArrayOutputStream();
+    var buf = new byte[BUF_SZ];
     while (true) {
-      int read = in.read(buf);
+      var read = in.read(buf);
       if (read == -1) {
         break;
       }
@@ -59,17 +59,17 @@ final class IO {
   }
 
   static long lastMTime(String path) throws IOException {
-    long lastModifiedTime = -1l;
+    var lastModifiedTime = -1l;
     LOGGER.finer(() -> path);
     try {
       if (IO.class.getResource(path) != null) {
-        URI fileUri = IO.class.getResource(path).toURI();
+        var fileUri = IO.class.getResource(path).toURI();
         LOGGER.finer(() -> "Reading last MTime on " + fileUri.toASCIIString());
         if (fileUri.toASCIIString().startsWith("jar:")) {
-          String jarname = fileUri.toASCIIString().split("!")[0].substring("jar:file:".length());
+          var jarname = fileUri.toASCIIString().split("!")[0].substring("jar:file:".length());
           LOGGER.finest(() -> "jarfile name = " + jarname);
-          try (ZipFile jar = new ZipFile(new File(jarname))) {
-            String entryname = path.startsWith("/") ? path.substring(1) : path;
+          try (var jar = new ZipFile(new File(jarname))) {
+            var entryname = path.startsWith("/") ? path.substring(1) : path;
             lastModifiedTime = jar.getEntry(entryname).getTime();
           } catch (Exception e) {
             if (e instanceof RuntimeException) {

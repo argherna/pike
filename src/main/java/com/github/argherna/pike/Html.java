@@ -24,7 +24,7 @@ final class Html {
      * this could be costly over time.
      */ 
 
-    try (Formatter f = new Formatter(startRender())) {
+    try (var f = new Formatter(startRender())) {
       f.format(IO.loadUtf8ResourceFromClasspath("/templates/error-head.html"), 
         status.getStatusCode(), status.getMessage());
       headToBody(f.out());

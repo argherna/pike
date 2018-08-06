@@ -13,14 +13,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.prefs.BackingStoreException;
-import java.util.prefs.InvalidPreferencesFormatException;
 
 import javax.naming.NamingException;
 import javax.naming.ldap.LdapContext;
 
 import com.sun.net.httpserver.Filter;
-import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
@@ -35,32 +32,22 @@ class Pike {
   private final HttpServer httpServer;
 
   public static void main(String... args) {
-    int port = DEFAULT_HTTP_SERVER_PORT;
-    int argIdx = 0;
+    var port = DEFAULT_HTTP_SERVER_PORT;
+    var argIdx = 0;
     String connName = null;
     String filename = null;
     while (argIdx < args.length) {
-      String arg = args[argIdx];
+      var arg = args[argIdx];
       switch (arg) {
       case "-D":
       case "--delete-all-connections":
-        try {
-          Settings.deleteAllConnections();
-          System.exit(0);
-        } catch (BackingStoreException e) {
-          System.err.println(e.getMessage());
-          System.exit(1);
-        }
+        Settings.deleteAllConnections();
+        System.exit(0);
       case "-d":
       case "--delete-connection":
         connName = args[++argIdx];
-        try {
-          Settings.deleteSingleConnection(connName);
-          System.exit(0);
-        } catch (BackingStoreException e) {
-          System.err.println(e.getMessage());
-          System.exit(1);
-        }
+        Settings.deleteSingleConnection(connName);
+        System.exit(0);
       case "-h":
       case "--help":
         showUsageAndExit(2);
@@ -71,39 +58,24 @@ class Pike {
         try {
           Settings.importSettings(new FileInputStream(filename));
           System.exit(0);
-        } catch (IOException | InvalidPreferencesFormatException e) {
+        } catch (IOException e) {
           System.err.println(e.getMessage());
           System.exit(1);
         }
       case "-l":
       case "--list-connections":
-        try {
-          Arrays.stream(Settings.getAllConnectionNames()).forEach(System.out::println);
-          System.exit(0);
-        } catch (BackingStoreException e) {
-          System.err.println(e.getMessage());
-          System.exit(1);
-        }
+        Arrays.stream(Settings.getAllConnectionNames()).forEach(System.out::println);
+        System.exit(0);
       case "-X":
       case "--export-all-connections":
-        try {
-          System.out.println(new String(Settings.exportAllConnectionSettings()));
-          System.exit(0);
-        } catch (IOException | BackingStoreException e) {
-          System.err.println(e.getMessage());
-          System.exit(1);
-        }
+        System.out.println(new String(Settings.exportAllConnectionSettings()));
+        System.exit(0);
         break;
       case "-x":
       case "--export-connection":
         connName = args[++argIdx];
-        try {
-          System.out.println(new String(Settings.exportConnectionSettings(connName)));
-          System.exit(0);
-        } catch (IOException | BackingStoreException e) {
-          System.err.println(e.getMessage());
-          System.exit(1);
-        }
+        System.out.println(new String(Settings.exportConnectionSettings(connName)));
+        System.exit(0);
       default:
         if (arg.startsWith("-")) {
           System.err.printf("Unknown option %s%n", arg);
@@ -126,13 +98,13 @@ class Pike {
 
     try {
       final Pike pike = new Pike(port);
-      HttpHandler searchHandler = new SearchHandler();
-      HttpHandler staticResourceHandler = new StaticResourceHandler();
+      var searchHandler = new SearchHandler();
+      var staticResourceHandler = new StaticResourceHandler();
 
-      Filter faviconFilter = new FaviconFilter();
-      Filter internalServerErrorFilter = new InternalServerErrorFilter();
-      Filter jsonInFilter = new JsonInFilter();
-      Filter notModifiedFilter = new NotModifiedFilter();
+      var faviconFilter = new FaviconFilter();
+      var internalServerErrorFilter = new InternalServerErrorFilter();
+      var jsonInFilter = new JsonInFilter();
+      var notModifiedFilter = new NotModifiedFilter();
 
       pike.addHandler("/", searchHandler, List.of(notModifiedFilter, faviconFilter, internalServerErrorFilter));
       pike.addHandler("/connection", new ConnectionHandler(),
@@ -165,9 +137,9 @@ class Pike {
     }
   }
 
-  static LdapContext activate(String connectionName) throws BackingStoreException, IOException, NamingException,
-      NoSuchAlgorithmException, CertificateException, KeyStoreException, UnrecoverableKeyException {
-    LdapContext active = ldapContexts.get(connectionName);
+  static LdapContext activate(String connectionName) throws IOException, NamingException, NoSuchAlgorithmException,
+      CertificateException, KeyStoreException, UnrecoverableKeyException {
+    var active = ldapContexts.get(connectionName);
     if (active == null) {
       active = Ldap.createLdapContext(connectionName);
       ldapContexts.put(connectionName, active);
@@ -193,20 +165,18 @@ class Pike {
   }
 
   static String getActiveBaseDn() {
-    String activeConnectionName = Settings.getActiveConnectionName();
-    String activeBaseDn = Settings.getConnectionSettings(activeConnectionName).get(Settings.BASE_DN_SETTING, "");
-    return activeBaseDn;
+    return Settings.getConnectionSettings(Settings.getActiveConnectionName()).getBaseDn();
   }
 
-  static void delete(String connectionName) throws NamingException, BackingStoreException {
-    LdapContext toDelete = ldapContexts.remove(connectionName);
+  static void delete(String connectionName) throws NamingException {
+    var toDelete = ldapContexts.remove(connectionName);
     if (toDelete != null) {
       toDelete.close();
       LOGGER.info(() -> String.format("Deleted %s", connectionName));
     }
     Settings.deleteSingleConnection(connectionName);
     LOGGER.info(String.format("Deleted connection settings for %s", connectionName));
-    String activeConnectionName = Settings.getActiveConnectionName();
+    var activeConnectionName = Settings.getActiveConnectionName();
     if (activeConnectionName.equals(connectionName)) {
       Settings.unsetActiveConnectionName();
     }
@@ -249,9 +219,8 @@ class Pike {
   }
 
   void addHandler(String path, HttpHandler handler, List<Filter> filters) {
-    HttpContext context = httpServer.createContext(path);
-    List<Filter> contextFilters = context.getFilters();
-    contextFilters.addAll(filters);
+    var context = httpServer.createContext(path);
+    context.getFilters().addAll(filters);
     context.setHandler(handler);
   }
 
@@ -262,7 +231,7 @@ class Pike {
 
   void shutdown() {
     for (String connectionName : ldapContexts.keySet()) {
-      LdapContext ldapContext = ldapContexts.get(connectionName);
+      var ldapContext = ldapContexts.get(connectionName);
       if (ldapContext != null) {
         try {
           ldapContext.close();

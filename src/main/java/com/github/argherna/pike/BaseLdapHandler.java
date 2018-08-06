@@ -5,7 +5,6 @@ import java.util.List;
 
 import javax.naming.ldap.LdapContext;
 
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -13,7 +12,7 @@ abstract class BaseLdapHandler implements HttpHandler {
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
-    Headers headers = exchange.getRequestHeaders();
+    var headers = exchange.getRequestHeaders();
     if (headers.containsKey("Accept")) {
       List<String> accept = headers.get("Accept");
       if (accept.contains(ContentTypes.TYPES.get("json"))) {
@@ -32,17 +31,15 @@ abstract class BaseLdapHandler implements HttpHandler {
 
   private void internalDoHtml(HttpExchange exchange) throws IOException {
     // Indirection keeps logic from being overridden in subclasses.
-    HttpStatus status = HttpStatus.OK;
-    String contentType = ContentTypes.TYPES.get("html");
-    String activeConnectionName = Settings.getActiveConnectionName();
+    var status = HttpStatus.OK;
+    var contentType = ContentTypes.TYPES.get("html");
+    var activeConnectionName = Settings.getActiveConnectionName();
     if (Strings.isNullOrEmpty(activeConnectionName)) {
-      Http.sendResponseWithLocationNoContent(exchange, 
-        HttpStatus.TEMPORARY_REDIRECT, contentType, "/connections");
+      Http.sendResponseWithLocationNoContent(exchange, HttpStatus.TEMPORARY_REDIRECT, contentType, "/connections");
       return;
     }
 
-    byte[] content = IO.loadResourceFromClasspath(getHtmlTemplateName());
-    Http.sendResponse(exchange, status, content, contentType);
+    Http.sendResponse(exchange, status, IO.loadResourceFromClasspath(getHtmlTemplateName()), contentType);
   }
 
   abstract String getHtmlTemplateName();

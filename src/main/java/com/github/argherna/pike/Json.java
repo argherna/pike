@@ -27,7 +27,7 @@ final class Json {
   // Values can be rendered if they are non-null, and if String non-empty (length
   // > 0).
   private static final Predicate<? super Object> HAS_VALUE = v -> {
-    boolean hasValue = Objects.nonNull(v);
+    var hasValue = Objects.nonNull(v);
     if (hasValue && v instanceof String) {
       hasValue = v.toString().length() > 0;
     }
@@ -35,7 +35,7 @@ final class Json {
   };
 
   private static final Predicate<Entry<String, Object>> ENTRY_HAS_VALUE = e -> {
-    boolean hasValue = Objects.nonNull(e.getValue());
+    var hasValue = Objects.nonNull(e.getValue());
     if (hasValue && e.getValue() instanceof String) {
       hasValue = e.getValue().toString().length() > 0;
     }
@@ -43,24 +43,24 @@ final class Json {
   };
 
   static String renderObject(Map<String, Object> object) throws IOException {
-    StringBuilder buffer = new StringBuilder();
+    var buffer = new StringBuilder();
     renderObject(object, buffer);
     return buffer.toString();
   }
 
   static String renderList(Iterable<? extends Object> values) throws IOException {
-    StringBuilder buffer = new StringBuilder();
+    var buffer = new StringBuilder();
     renderList(values, buffer);
     return buffer.toString();
   }
 
   private static void renderObject(Map<String, Object> data, Appendable buffer) throws IOException {
-    Map<String, Object> filteredData = data.entrySet().stream().filter(ENTRY_HAS_VALUE)
+    var filteredData = data.entrySet().stream().filter(ENTRY_HAS_VALUE)
         .collect(Collectors.toMap(k -> k.getKey(), v -> v.getValue()));
     if (!filteredData.isEmpty()) {
       buffer.append("{");
       for (Iterator<String> keys = filteredData.keySet().iterator(); keys.hasNext();) {
-        String key = keys.next();
+        var key = keys.next();
         buffer.append("\"").append(key).append("\":");
         renderValue(filteredData.get(key), buffer);
         if (keys.hasNext()) {
@@ -139,10 +139,8 @@ final class Json {
     // set the LOGGER to FINEST and run the query again looking at the output
     // from this method. Update #toPrintable(char) as appropriate.
     if (LOGGER.isLoggable(Level.FINEST)) {
-      StringBuilder types = new StringBuilder();
-      int charType = Character.getType(value);
-      String charTypeName = "UNKNOWN";
-      switch (charType) {
+      var charTypeName = "UNKNOWN";
+      switch (Character.getType(value)) {
       case 0:
         charTypeName = "Character.UNASSIGNED";
         break;
@@ -234,14 +232,12 @@ final class Json {
         charTypeName = "Character.FINAL_QUOTE_PUNCTUATION";
         break;
       }
-      types.append(value).append(": ").append(charTypeName);
-      LOGGER.finest(types.toString());
+      LOGGER.finest(new StringBuilder().append(value).append(": ").append(charTypeName).toString());
     }
   }
 
   private static char toPrintable(char c) {
-    int type = Character.getType(c);
-    switch (type) {
+    switch (Character.getType(c)) {
     case Character.CONTROL:
     case Character.OTHER_SYMBOL:
       return '?';
@@ -250,19 +246,18 @@ final class Json {
     }
   }
 
+  @SuppressWarnings("unchecked")
   static Map<String, Object> marshal(String json) {
     // With great thanks to
     // http://www.adam-bien.com/roller/abien/entry/converting_json_to_map_with
-    ScriptEngineManager seManager = new ScriptEngineManager();
-    ScriptEngine se = seManager.getEngineByName("javascript");
+    var seManager = new ScriptEngineManager();
+    var se = seManager.getEngineByName("javascript");
     LOGGER.fine(() -> String.format("Marshalling %s", json));
-    String script = String.format("Java.asJSONCompatible(%s)", json);
+    var script = String.format("Java.asJSONCompatible(%s)", json);
 
     try {
       Object evaluated = se.eval(script);
-      @SuppressWarnings("unchecked")
-      Map<String, Object> marshalled = (Map<String, Object>) evaluated;
-      return marshalled;
+      return (Map<String, Object>) evaluated;
     } catch (ScriptException e) {
       throw new RuntimeException(e);
     }

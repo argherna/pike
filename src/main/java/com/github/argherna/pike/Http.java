@@ -22,7 +22,7 @@ final class Http {
   static void sendResponseWithLocationNoContent(HttpExchange exchange, 
     HttpStatus status, String contentType, String location) 
     throws IOException {
-    Map<String, List<String>> responseHeaders = new HashMap<>();
+    var responseHeaders = new HashMap<String, List<String>>();
     addContentTypeResponseHeaders(responseHeaders, contentType);
     responseHeaders.put("Location", List.of(location));
     sendResponse(exchange, status, new byte[0], responseHeaders);
@@ -30,7 +30,7 @@ final class Http {
 
   static void sendResponse(HttpExchange exchange, HttpStatus status, 
     byte[] content, String contentType) throws IOException {
-    Map<String, List<String>> responseHeaders = new HashMap<>();
+    var responseHeaders = new HashMap<String, List<String>>();
     addContentTypeResponseHeaders(responseHeaders, contentType);
     sendResponse(exchange, status, content, responseHeaders);
   }
@@ -38,10 +38,10 @@ final class Http {
   static void sendResponse(HttpExchange exchange, HttpStatus status, 
     byte[] content, Map<String, List<String>> responseHeaders) 
     throws IOException {
-    Headers h = exchange.getResponseHeaders();
+    var h = exchange.getResponseHeaders();
     if (responseHeaders != null) {
       for (String headerName : responseHeaders.keySet()) {
-        List<String> values = responseHeaders.get(headerName);
+        var values = responseHeaders.get(headerName);
         for (String value : values) {
           h.add(headerName, value);
         }
@@ -50,13 +50,13 @@ final class Http {
 
     // Avoid NPE when writing response by setting content length to -1 when
     // request method is HEAD or byte array is 0-length.
-    int length = 
+    var length = 
       exchange.getRequestMethod().equals("HEAD") || content.length == 0 ||
         status == HttpStatus.NO_CONTENT ? -1 : content.length;
     exchange.sendResponseHeaders(status.getStatusCode(), length);
 
     if (content.length > 0) {
-      try (OutputStream out = exchange.getResponseBody()) {
+      try (var out = exchange.getResponseBody()) {
         out.write(content);
         out.flush();
       } 
@@ -83,13 +83,13 @@ final class Http {
 
   static Map<String, List<String>> queryToMap(String rawQuery, 
     Map<String, Function<String, List<String>>> parameterProcessors) {
-    Map<String, List<String>> decodedParameters = new HashMap<>();
+    var decodedParameters = new HashMap<String, List<String>>();
     if (!Strings.isNullOrEmpty(rawQuery)) {
-      String[] parameters = rawQuery.split("&");
+      var parameters = rawQuery.split("&");
       for (String parameter : parameters) {
-        String[] param = parameter.split("=");
+        var param = parameter.split("=");
         try {
-          List<String> value = decodedParameters.get(param[0]);
+          var value = decodedParameters.get(param[0]);
           if (value == null) {
             value = new ArrayList<>();
           }
@@ -110,7 +110,7 @@ final class Http {
   }
 
   static String getLastPathComponent(String uriPath) {
-    String[] pathComponents = uriPath.split("/");
+    var pathComponents = uriPath.split("/");
     return pathComponents[pathComponents.length - 1];
   }
 }

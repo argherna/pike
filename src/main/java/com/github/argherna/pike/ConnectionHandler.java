@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.logging.Logger;
-import java.util.prefs.Preferences;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -41,7 +40,7 @@ class ConnectionHandler implements HttpHandler {
   }
 
   private void doGet(HttpExchange exchange) throws IOException {
-    Headers h = exchange.getRequestHeaders();
+    var h = exchange.getRequestHeaders();
     if (h.containsKey("Accept")) {
       List<String> accept = h.get("Accept");
       if (accept.contains(ContentTypes.TYPES.get("json"))) {
@@ -60,13 +59,13 @@ class ConnectionHandler implements HttpHandler {
   }
 
   private void doGetJson(HttpExchange exchange) throws IOException {
-    String name = Http.getLastPathComponent(exchange.getRequestURI().getPath());
+    var name = Http.getLastPathComponent(exchange.getRequestURI().getPath());
     byte[] content = null;
-    String contentType = ContentTypes.TYPES.get("json");
-    HttpStatus status = HttpStatus.OK;
+    var contentType = ContentTypes.TYPES.get("json");
+    var status = HttpStatus.OK;
     if (!name.isEmpty()) {
       try {
-        content = Json.renderObject(Settings.getConnectionSettingsAsMap(name)).getBytes();
+        content = Json.renderObject(Maps.toMap(Settings.getConnectionSettings(name))).getBytes();
       } catch (Exception e) {
         if (e instanceof IOException) {
           throw (IOException) e;
@@ -83,52 +82,32 @@ class ConnectionHandler implements HttpHandler {
   }
 
   private void doPost(HttpExchange exchange) throws IOException {
-
-    InputStream requestBodyStream = exchange.getRequestBody();
-    Headers requestHeaders = exchange.getRequestHeaders();
-    String contentType = requestHeaders.get("Content-Type") != null ? requestHeaders.get("Content-Type").get(0) : "";
-    Map<String, List<String>> connectionSettings = new HashMap<>();
+    var requestBodyStream = exchange.getRequestBody();
+    var requestHeaders = exchange.getRequestHeaders();
+    var contentType = requestHeaders.get("Content-Type") != null ? requestHeaders.get("Content-Type").get(0) : "";
+    var connectionSettings = new HashMap<String, List<String>>();
     if (contentType.equals(ContentTypes.TYPES.get("form"))) {
-      String formParameters = new String(IO.toByteArray(requestBodyStream), "UTF-8");
-      connectionSettings.putAll(Http.queryToMap(formParameters, PARAM_PROCS));
+      connectionSettings.putAll(Http.queryToMap(new String(IO.toByteArray(requestBodyStream), "UTF-8"), PARAM_PROCS));
     }
 
-    String name = connectionSettings.get("name") != null ? connectionSettings.get("name").get(0) : "";
-    String ldapUrl = connectionSettings.get("ldapurl") != null ? connectionSettings.get("ldapurl").get(0) : "";
-    String baseDn = connectionSettings.get("basedn") != null ? connectionSettings.get("basedn").get(0) : "";
-    String authType = connectionSettings.get("authtype") != null ? connectionSettings.get("authtype").get(0) : "";
-    String bindDn = connectionSettings.get("binddn") != null ? connectionSettings.get("binddn").get(0) : "";
-    String password = connectionSettings.get("password") != null ? connectionSettings.get("password").get(0) : "";
-    String referralPolicy = connectionSettings.get("referralpolicy") != null
+    var name = connectionSettings.get("name") != null ? connectionSettings.get("name").get(0) : "";
+    var ldapUrl = connectionSettings.get("ldapurl") != null ? connectionSettings.get("ldapurl").get(0) : "";
+    var baseDn = connectionSettings.get("basedn") != null ? connectionSettings.get("basedn").get(0) : "";
+    var authType = connectionSettings.get("authtype") != null ? connectionSettings.get("authtype").get(0) : "";
+    var bindDn = connectionSettings.get("binddn") != null ? connectionSettings.get("binddn").get(0) : "";
+    var password = connectionSettings.get("password") != null ? connectionSettings.get("password").get(0) : "";
+    var referralPolicy = connectionSettings.get("referralpolicy") != null
         ? connectionSettings.get("referralpolicy").get(0)
         : "";
 
-    boolean useStartTls = connectionSettings.get("usestarttls") != null
+    var useStartTls = connectionSettings.get("usestarttls") != null
         ? Boolean.valueOf(connectionSettings.get("usestarttls").get(0))
         : false;
 
     try {
-      String prefnode = String.format("%s/%s", Settings.CONNECTION_PREFS_ROOT_NODE_NAME, name);
-      Preferences connectionPrefs = Preferences.userRoot().node(prefnode);
-      connectionPrefs.put(Settings.LDAP_URL_SETTING, ldapUrl);
-      connectionPrefs.put(Settings.BASE_DN_SETTING, baseDn);
-      connectionPrefs.put(Settings.BIND_DN_SETTING, bindDn);
-      if (!password.isEmpty()) {
-        // Settings#secretToByteArray could throw some wacky security
-        // exceptions.
-        connectionPrefs.putByteArray(Settings.PASSWORD_SETTING,
-            Settings.secretToByteArray(bindDn, password.getBytes()));
-      }
-      connectionPrefs.putBoolean(Settings.USE_STARTTLS_SETTING, useStartTls);
-      connectionPrefs.put(Settings.AUTHTYPE_SETTING, authType);
-      connectionPrefs.put(Settings.REFERRAL_POLICY_SETTING, referralPolicy);
-      // These 2 could throw a BackingStoreException.
-      connectionPrefs.flush();
-      connectionPrefs.sync();
-      LOGGER.fine(() -> String.format("Saved %s settings: %s=%s,%s=%s,%s=%s,%s=********,%s=%b,%s=%s,%s=%s", name,
-          Settings.LDAP_URL_SETTING, ldapUrl, Settings.BASE_DN_SETTING, baseDn, Settings.BIND_DN_SETTING, bindDn,
-          Settings.PASSWORD_SETTING, Settings.USE_STARTTLS_SETTING, useStartTls, Settings.AUTHTYPE_SETTING, authType,
-          Settings.REFERRAL_POLICY_SETTING, referralPolicy));
+      Settings.saveConnectionSettings(new Settings.ConnectionSettings.Builder(name).ldapUrl(ldapUrl).baseDn(baseDn)
+          .authType(authType).bindDn(bindDn).password(Settings.secretToByteArray(bindDn, password.getBytes()))
+          .referralPolicy(referralPolicy).useStartTls(useStartTls).build());
     } catch (Exception e) {
       if (e instanceof IOException) {
         throw (IOException) e;
@@ -138,17 +117,17 @@ class ConnectionHandler implements HttpHandler {
       }
       throw new RuntimeException(e);
     }
-    LOGGER.fine(() -> String.format("Settings for %1$s saved; sending to /connection/%1$s", name));
+    LOGGER.fine(() -> String.format("Redirecting to /connection/%1$s", name));
     Http.sendResponseWithLocationNoContent(exchange, HttpStatus.FOUND, ContentTypes.TYPES.get("html"),
         "/connection/" + name);
   }
 
   private void doPatch(HttpExchange exchange) throws IOException {
-    String path = Http.getLastPathComponent(exchange.getRequestURI().getPath());
+    var path = Http.getLastPathComponent(exchange.getRequestURI().getPath());
     if (path.isEmpty()) {
-      HttpStatus status = HttpStatus.BAD_REQUEST;
-      byte[] content = Html.renderError(status, "Connection name not specified!").getBytes();
-      Http.sendResponse(exchange, status, content, ContentTypes.TYPES.get("html"));
+      var status = HttpStatus.BAD_REQUEST;
+      Http.sendResponse(exchange, status, Html.renderError(status, "Connection name not specified!").getBytes(),
+          ContentTypes.TYPES.get("html"));
       return;
     }
 
@@ -165,10 +144,10 @@ class ConnectionHandler implements HttpHandler {
   }
 
   private void doDelete(HttpExchange exchange) throws IOException {
-    String path = exchange.getRequestURI().getPath();
-    String contentType = ContentTypes.TYPES.get("html");
+    var path = exchange.getRequestURI().getPath();
+    var contentType = ContentTypes.TYPES.get("html");
     if (!path.endsWith(exchange.getHttpContext().getPath())) {
-      String connectionName = Http.getLastPathComponent(exchange.getRequestURI().getPath());
+      var connectionName = Http.getLastPathComponent(exchange.getRequestURI().getPath());
       try {
         Pike.delete(connectionName);
       } catch (Exception e) {
@@ -180,7 +159,7 @@ class ConnectionHandler implements HttpHandler {
       }
       Http.sendResponse(exchange, HttpStatus.NO_CONTENT, new byte[0], contentType);
     } else {
-      HttpStatus status = HttpStatus.BAD_REQUEST;
+      var status = HttpStatus.BAD_REQUEST;
       Http.sendResponse(exchange, status, Html.renderError(status, "Connection name not specified!").getBytes(),
           contentType);
     }

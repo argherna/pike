@@ -24,7 +24,7 @@ class InternalServerErrorFilter extends Filter {
       Throwable cause = e;
       if (e.getCause() != null) {
         cause = e.getCause();
-        Throwable c0 = cause;
+        var c0 = cause;
         while (c0 != null) {
           c0 = cause.getCause();
           if (c0 != null) {
@@ -33,8 +33,8 @@ class InternalServerErrorFilter extends Filter {
         }
       }
       LOGGER.log(Level.SEVERE, "Unhandled exception! Returning Internal Server Error", cause);
-      HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
-      byte[] content = Html.renderError(status, "An internal error occurred! Check the server logs!").getBytes();
+      var status = HttpStatus.INTERNAL_SERVER_ERROR;
+      var content = Html.renderError(status, "An internal error occurred! Check the server logs!").getBytes();
       Http.sendResponse(exchange, status, content, ContentTypes.TYPES.get("html"));
     }
   }

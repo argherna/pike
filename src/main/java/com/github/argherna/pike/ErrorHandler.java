@@ -9,8 +9,7 @@ class ErrorHandler implements HttpHandler {
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
-    HttpStatus status = HttpStatus.OK;
-    byte[] content = IO.loadResourceFromClasspath("/templates/error.html");
-    Http.sendResponse(exchange, status, content, ContentTypes.TYPES.get("html"));
+    Http.sendResponse(exchange, HttpStatus.OK, IO.loadResourceFromClasspath("/templates/error.html"),
+        ContentTypes.TYPES.get("html"));
   }
 }

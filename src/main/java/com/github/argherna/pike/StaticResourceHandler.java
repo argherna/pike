@@ -9,10 +9,10 @@ class StaticResourceHandler implements HttpHandler {
 
   @Override
   public void handle(HttpExchange exchange) throws IOException {
-    HttpStatus status = HttpStatus.OK;
-    String path = exchange.getRequestURI().getPath();
-    String contentType = ContentTypes.TYPES.get(getFileExtension(path));
-    byte[] content = IO.loadResourceFromClasspath(path);
+    var status = HttpStatus.OK;
+    var path = exchange.getRequestURI().getPath();
+    var contentType = ContentTypes.TYPES.get(getFileExtension(path));
+    var content = IO.loadResourceFromClasspath(path);
     if (content.length == 0) {
       status = HttpStatus.NOT_FOUND;
       content = Html.renderError(status, String.format(
@@ -23,7 +23,7 @@ class StaticResourceHandler implements HttpHandler {
   }
 
   private String getFileExtension(String filename) {
-    int lastDot = filename.lastIndexOf('.');
+    var lastDot = filename.lastIndexOf('.');
     return lastDot > 0 ? filename.substring(lastDot + 1) : "";
   }
 }
