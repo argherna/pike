@@ -1,7 +1,6 @@
 package com.github.argherna.pike;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,7 +9,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 

@@ -4,15 +4,14 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
@@ -74,8 +73,8 @@ final class Json {
   private static void renderList(Iterable<? extends Object> data, Appendable buffer) throws IOException {
     List<? extends Object> filteredData = StreamSupport.stream(data.spliterator(), false).filter(HAS_VALUE)
         .collect(Collectors.toList());
+    buffer.append("[");
     if (!filteredData.isEmpty()) {
-      buffer.append("[");
       for (Iterator<? extends Object> values = data.iterator(); values.hasNext();) {
         Object value = values.next();
         renderValue(value, buffer);
@@ -83,8 +82,8 @@ final class Json {
           buffer.append(",");
         }
       }
-      buffer.append("]");
     }
+    buffer.append("]");
   }
 
   @SuppressWarnings("unchecked")
