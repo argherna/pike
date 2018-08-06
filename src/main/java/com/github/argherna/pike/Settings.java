@@ -137,7 +137,8 @@ final class Settings {
 
   static String[] getSearchNames(String connectionName) {
     try {
-      return Preferences.userRoot().node(connectionName + "/searches").childrenNames();
+      return Preferences.userRoot().node(CONNECTION_PREFS_ROOT_NODE_NAME + "/" + connectionName + "/searches")
+          .childrenNames();
     } catch (BackingStoreException e) {
       throw new RuntimeException(e);
     }
@@ -153,7 +154,8 @@ final class Settings {
   }
 
   static Settings.SearchSettings getSearchSettings(String connectionName, String searchName) {
-    var prefs = Preferences.userRoot().node(connectionName + "/searches/" + searchName);
+    var prefs = Preferences.userRoot()
+        .node(CONNECTION_PREFS_ROOT_NODE_NAME + "/" + connectionName + "/searches/" + searchName);
     return new Settings.SearchSettings.Builder(searchName).attrsToReturn(prefs.get(ATTRS_TO_RETURN_SETTING, ""))
         .filter(prefs.get(FILTER_SETTING, "")).rdn(prefs.get(RDN_SETTING, "")).scope(prefs.get(SCOPE_SETTING, ""))
         .build();
@@ -218,20 +220,12 @@ final class Settings {
   }
 
   static boolean savedSearchExists(String connectionName, String searchName) {
-    var savedSearchExists = false;
-    var search = Preferences.userRoot()
-        .node(CONNECTION_PREFS_ROOT_NODE_NAME + "/" + connectionName + "/searches/" + searchName);
     try {
-      savedSearchExists = search.keys().length > 0;
-      // Calling node above creates it if it doesn't exist. This undoes the creation.
-      if (!savedSearchExists) {
-        search.removeNode();
-        search.flush();
-      }
+      return Preferences.userRoot()
+          .nodeExists(CONNECTION_PREFS_ROOT_NODE_NAME + "/" + connectionName + "/searches/" + searchName);
     } catch (BackingStoreException e) {
       throw new RuntimeException(e);
     }
-    return savedSearchExists;
   }
 
   static byte[] exportConnectionSettings(String name) {
@@ -301,7 +295,8 @@ final class Settings {
   }
 
   static void saveSearchSettings(String connectionName, Settings.SearchSettings searchSettings) throws Exception {
-    var search = Preferences.userRoot().node(connectionName + "/searches/" + searchSettings.getName());
+    var search = Preferences.userRoot()
+        .node(CONNECTION_PREFS_ROOT_NODE_NAME + "/" + connectionName + "/searches/" + searchSettings.getName());
     if (Strings.nullToEmpty(searchSettings.getFilter()).length() > 0) {
       search.put(FILTER_SETTING, searchSettings.getFilter());
     }
@@ -445,7 +440,7 @@ final class Settings {
     }
 
     byte[] getPassword() {
-      byte[] copy = new byte[0];
+      byte[] copy = new byte[password.length];
       System.arraycopy(password, 0, copy, 0, password.length);
       return copy;
     }
@@ -498,7 +493,9 @@ final class Settings {
       }
 
       Builder attrsToReturn(String attrsToReturn) {
-        this.attrsToReturn = List.of(attrsToReturn.split(","));
+        if (attrsToReturn.length() > 0) {
+          this.attrsToReturn = List.of(attrsToReturn.split(","));
+        }
         return this;
       }
 
