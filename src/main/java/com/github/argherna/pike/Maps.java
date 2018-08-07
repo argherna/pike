@@ -1,5 +1,6 @@
 package com.github.argherna.pike;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,11 +19,18 @@ final class Maps {
     return Map
         .of("name", Strings.nullToEmpty(connSettings.getName()), "ldapUrl",
             Strings.nullToEmpty(connSettings.getLdapUrl()), "host",
-            Ldap.getLdapHost(Strings.nullToEmpty(connSettings.getLdapUrl())), "baseDn",
+            getLdapHost(Strings.nullToEmpty(connSettings.getLdapUrl())), "baseDn",
             Strings.nullToEmpty(connSettings.getBaseDn()), "authType", Strings.nullToEmpty(connSettings.getAuthType()),
             "bindDn", Strings.nullToEmpty(connSettings.getBindDn()), "useStartTls", connSettings.getUseStartTls())
         .entrySet().stream().filter(e -> e.getValue().toString().length() > 0)
         .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+  }
+
+  private static String getLdapHost(String ldapUrl) {
+    if (Strings.isNullOrEmpty(ldapUrl)) {
+      return "unknown";
+    }
+    return URI.create(ldapUrl).getHost();
   }
 
   static Map<String, Object> toMap(Settings.SearchSettings searchSettings) {

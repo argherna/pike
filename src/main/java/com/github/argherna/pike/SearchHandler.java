@@ -12,6 +12,7 @@ import java.util.StringJoiner;
 import java.util.function.Function;
 
 import javax.naming.NamingException;
+import javax.naming.directory.SearchControls;
 
 import com.sun.net.httpserver.HttpExchange;
 
@@ -54,12 +55,12 @@ class SearchHandler extends BaseLdapHandler {
       if (rawQuery != null && !rawQuery.isEmpty()) {
         parameters = Http.queryToMap(rawQuery, PARAM_PROCS);
         rdn = parameters.containsKey("rdn") ? parameters.get("rdn").get(0) : null;
-        filter = Ldap.getFilter(parameters);
+        filter = parameters.containsKey("filter") ? parameters.get("filter").get(0) : "(objectClass=*)";
         attrs = parameters.get("attr");
         scope = parameters.containsKey("scope") ? parameters.get("scope").get(0) : "subtree";
 
         var searchBase = getSearchBase(rdn);
-        var searchControls = Ldap.getSearchControls(parameters);
+        var searchControls = getSearchControls(parameters);
         var results = ldapContext.search(searchBase, filter, searchControls);
         if (results.hasMoreElements()) {
           records = new ArrayList<>();
@@ -110,5 +111,32 @@ class SearchHandler extends BaseLdapHandler {
       sj.add(rdn).add(Settings.getConnectionSettings(Settings.getActiveConnectionName()).getBaseDn());
       return sj.toString();
     }
+  }
+
+  private SearchControls getSearchControls(Map<String, List<String>> parameters) {
+    // Do a subtree search by default. If another (valid) scope is specified
+    // then search with that.
+    var scope = SearchControls.SUBTREE_SCOPE;
+    if (parameters.containsKey("scope")) {
+      var value = parameters.get("scope").get(0);
+      if (value.equalsIgnoreCase("object")) {
+        scope = SearchControls.OBJECT_SCOPE;
+      } else if (value.equalsIgnoreCase("onelevel")) {
+        scope = SearchControls.ONELEVEL_SCOPE;
+      }
+    }
+
+    String[] returningAttributes = null;
+    if (parameters.containsKey("attr")) {
+      var value = parameters.get("attr");
+      if (value != null && !value.isEmpty()) {
+        returningAttributes = value.toArray(new String[value.size()]);
+      }
+    }
+
+    var searchControls = new SearchControls();
+    searchControls.setSearchScope(scope);
+    searchControls.setReturningAttributes(returningAttributes);
+    return searchControls;
   }
 }
