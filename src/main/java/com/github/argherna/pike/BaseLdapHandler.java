@@ -48,7 +48,7 @@ abstract class BaseLdapHandler implements HttpHandler {
 
   LdapContext getLdapContext() throws IOException {
     try {
-      return Pike.getActiveLdapContext();
+      return Ldap.createLdapContext(Settings.getActiveConnectionName());
     } catch (Exception e) {
       if (e instanceof IOException) {
         throw (IOException) e;

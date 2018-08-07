@@ -29,6 +29,12 @@ class RecordViewHandler extends BaseLdapHandler {
           .getBytes();
     } catch (NamingException e) {
       throw new RuntimeException(e);
+    } finally {
+      try {
+        ldapContext.close();
+      } catch (NamingException e) {
+        throw new RuntimeException(e);
+      }
     }
     Http.sendResponse(exchange, HttpStatus.OK, content, ContentTypes.TYPES.get("json"));
   }

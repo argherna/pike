@@ -3,19 +3,9 @@ package com.github.argherna.pike;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.naming.NamingException;
-import javax.naming.ldap.LdapContext;
 
 import com.sun.net.httpserver.Filter;
 import com.sun.net.httpserver.HttpHandler;
@@ -26,8 +16,6 @@ class Pike {
   private static final int DEFAULT_HTTP_SERVER_PORT = 8085;
 
   private static final Logger LOGGER = Logger.getLogger(Pike.class.getName());
-
-  private static final Map<String, LdapContext> ldapContexts = new HashMap<>();
 
   private final HttpServer httpServer;
 
@@ -137,51 +125,6 @@ class Pike {
     }
   }
 
-  static LdapContext activate(String connectionName) throws IOException, NamingException, NoSuchAlgorithmException,
-      CertificateException, KeyStoreException, UnrecoverableKeyException {
-    var active = ldapContexts.get(connectionName);
-    if (active == null) {
-      active = Ldap.createLdapContext(connectionName);
-      ldapContexts.put(connectionName, active);
-    }
-    Settings.setActiveConnectionName(connectionName);
-    LOGGER.fine(() -> String.format("%s is the active LDAP connection", connectionName));
-    return active;
-  }
-
-  static LdapContext getActiveLdapContext() throws IOException, NamingException, NoSuchAlgorithmException,
-      CertificateException, KeyStoreException, UnrecoverableKeyException {
-    LdapContext active = null;
-    String activeConnectionName = Settings.getActiveConnectionName();
-    if (!activeConnectionName.isEmpty()) {
-      if (ldapContexts.containsKey(activeConnectionName)) {
-        active = ldapContexts.get(activeConnectionName);
-      } else {
-        active = Ldap.createLdapContext(activeConnectionName);
-        ldapContexts.put(activeConnectionName, active);
-      }
-    }
-    return active;
-  }
-
-  static String getActiveBaseDn() {
-    return Settings.getConnectionSettings(Settings.getActiveConnectionName()).getBaseDn();
-  }
-
-  static void delete(String connectionName) throws NamingException {
-    var toDelete = ldapContexts.remove(connectionName);
-    if (toDelete != null) {
-      toDelete.close();
-      LOGGER.info(() -> String.format("Deleted %s", connectionName));
-    }
-    Settings.deleteSingleConnection(connectionName);
-    LOGGER.info(String.format("Deleted connection settings for %s", connectionName));
-    var activeConnectionName = Settings.getActiveConnectionName();
-    if (activeConnectionName.equals(connectionName)) {
-      Settings.unsetActiveConnectionName();
-    }
-  }
-
   private static void showUsageAndExit(int status) {
     showUsage();
     System.exit(status);
@@ -230,17 +173,6 @@ class Pike {
   }
 
   void shutdown() {
-    for (String connectionName : ldapContexts.keySet()) {
-      var ldapContext = ldapContexts.get(connectionName);
-      if (ldapContext != null) {
-        try {
-          ldapContext.close();
-          LOGGER.info(String.format("Removed LDAP connection %s.", connectionName));
-        } catch (NamingException e) {
-          LOGGER.log(Level.WARNING, "Problem closing LdapContext on shutdown!", e);
-        }
-      }
-    }
     LOGGER.warning("Stopping HTTP server...");
     httpServer.stop(0);
   }

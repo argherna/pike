@@ -72,7 +72,7 @@ class SearchHandler extends BaseLdapHandler {
 
       var data = new HashMap<String, Object>();
       data.put("connection", Maps.toMap(Settings.getConnectionSettings(Settings.getActiveConnectionName())));
-      
+
       var params = new HashMap<String, Object>();
       if (!Strings.isNullOrEmpty(scope)) {
         params.put("searchScope", scope);
@@ -96,6 +96,7 @@ class SearchHandler extends BaseLdapHandler {
       }
 
       Http.sendResponse(exchange, HttpStatus.OK, Json.renderObject(data).getBytes(), ContentTypes.TYPES.get("json"));
+      ldapContext.close();
     } catch (NamingException e) {
       throw new RuntimeException(e);
     }
@@ -103,10 +104,10 @@ class SearchHandler extends BaseLdapHandler {
 
   private String getSearchBase(String rdn) {
     if (Strings.isNullOrEmpty(rdn)) {
-      return Pike.getActiveBaseDn();
+      return Settings.getConnectionSettings(Settings.getActiveConnectionName()).getBaseDn();
     } else {
       var sj = new StringJoiner(",");
-      sj.add(rdn).add(Pike.getActiveBaseDn());
+      sj.add(rdn).add(Settings.getConnectionSettings(Settings.getActiveConnectionName()).getBaseDn());
       return sj.toString();
     }
   }

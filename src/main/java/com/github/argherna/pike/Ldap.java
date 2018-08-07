@@ -68,7 +68,7 @@ final class Ldap {
   static LdapContext createLdapContext(String connectionName) throws IOException, NamingException,
       NoSuchAlgorithmException, CertificateException, KeyStoreException, UnrecoverableKeyException {
     var connection = Settings.getConnectionSettings(connectionName);
-    var env = new Hashtable<String, String>();
+    var env = new Hashtable<String, Object>();
     env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
     env.put(Context.PROVIDER_URL, connection.getLdapUrl());
     var ldapContext = new InitialLdapContext(env, null);

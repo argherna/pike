@@ -130,7 +130,7 @@ class ConnectionHandler implements HttpHandler {
     }
 
     try {
-      Pike.activate(path);
+      Settings.setActiveConnectionName(path);
     } catch (Exception e) {
       if (e instanceof IOException) {
         throw (IOException) e;
@@ -147,7 +147,11 @@ class ConnectionHandler implements HttpHandler {
     if (!path.endsWith(exchange.getHttpContext().getPath())) {
       var connectionName = Http.getLastPathComponent(exchange.getRequestURI().getPath());
       try {
-        Pike.delete(connectionName);
+        Settings.deleteSingleConnection(connectionName);
+        var activeConnectionName = Settings.getActiveConnectionName();
+        if (activeConnectionName.equals(connectionName)) {
+          Settings.unsetActiveConnectionName();
+        }
       } catch (Exception e) {
         if (e instanceof IOException) {
           throw (IOException) e;
